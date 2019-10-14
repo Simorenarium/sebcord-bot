@@ -1,0 +1,9 @@
+*/target
+**/target/*
+*/bin/*
+*/classes/*
+**/*.class
+*._trace
+*/.thorntail-runner-cache
+**/org.eclipse.wst.*
+*.log

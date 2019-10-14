@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+	<Match>
+		<Bug category="PERFORMANCE" />
+	</Match>
+
+	<Match>
+		<Bug
+			pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS,
+				EI_EXPOSE_REP,
+				EI_EXPOSE_REP2,
+				NP_BOOLEAN_RETURN_NULL,
+				ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD,
+				NP_NONNULL_PARAM_VIOLATION,
+				UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR,
+				TQ_NEVER_VALUE_USED_WHERE_ALWAYS_REQUIRED,
+				RV_RETURN_VALUE_IGNORED_BAD_PRACTICE,
+				DM_DEFAULT_ENCODING,
+				NP_NONNULL_RETURN_VIOLATION,
+				NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR,
+				NP_LOAD_OF_KNOWN_NULL_VALUE,
+				NP_STORE_INTO_NONNULL_FIELD,
+				RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE,
+				URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD" />
+	</Match>
+
+	<!-- Excluded Tests ausser für JUnit-Failures -->
+	<Match>
+		<Class name="~.*\.Test.*" /> <!-- *Test -->
+		<Not>
+			<Bug code="IJU" />
+		</Not>
+	</Match>
+</FindBugsFilter>
