@@ -11,28 +11,30 @@ import javax.annotation.PostConstruct;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.theme.Theme;
+import com.vaadin.flow.theme.lumo.Lumo;
 
 /**
  * @author Jonas Michel
  *
  */
 @Route
+@Theme(value = Lumo.class, variant = Lumo.DARK)
 public class LandingPage extends Div {
 	private static final long serialVersionUID = -2585297208960680141L;
 
 	@PostConstruct
 	public void init() {
 		setSizeFull();
-		
+
 		TextField tf = new TextField();
-		
+
 		tf.setTitle("Auth Key");
 		tf.addInputListener(kup -> {
 			System.out.println(tf.getValue());
 		});
-		
-		
+
 		add(tf);
 	}
-	
+
 }
