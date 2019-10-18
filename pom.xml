@@ -1,14 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-	xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>coffee.michel.sebcord.bot</groupId>
-	<artifactId>coffee.michel.sebcord.bot.parent</artifactId>
+	<artifactId>coffee.michel.sebcord.bot</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
-	<packaging>pom</packaging>
+	<packaging>war</packaging>
 
 	<properties>
 		<project.source.version>11</project.source.version>
@@ -21,14 +18,10 @@
 		<skipITs>false</skipITs>
 
 		<failOnMissingWebXml>false</failOnMissingWebXml>
+
+		<vaadin.version>14.0.4</vaadin.version>
+		<node.version>v10.16.3</node.version>
 	</properties>
-
-	<modules>
-		<module>coffee.michel.sebcord.bot.rest</module>
-
-		<module>coffee.michel.sebcord.bot.product</module>
-		<module>coffee.michel.sebcord.bot.core</module>
-	</modules>
 
 	<dependencyManagement>
 		<dependencies>
@@ -50,11 +43,107 @@
 				<artifactId>discord4j-core</artifactId>
 				<version>3.0.10</version>
 			</dependency>
+			<dependency>
+				<groupId>com.vaadin</groupId>
+				<artifactId>vaadin-bom</artifactId>
+				<type>pom</type>
+				<scope>import</scope>
+				<version>${vaadin.version}</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
+
+	<dependencies>
+		<dependency>
+			<groupId>javax.ws.rs</groupId>
+			<artifactId>javax.ws.rs-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.microprofile.openapi</groupId>
+			<artifactId>microprofile-openapi-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.discord4j</groupId>
+			<artifactId>discord4j-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.enterprise</groupId>
+			<artifactId>cdi-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.microprofile.config</groupId>
+			<artifactId>microprofile-config-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.vaadin</groupId>
+			<!-- Replace artifactId with vaadin to include commercial components too -->
+			<artifactId>vaadin-core</artifactId>
+			<exclusions>
+				<!-- Webjars are only needed when running in Vaadin 13 compatibility 
+					mode -->
+				<exclusion>
+					<groupId>com.vaadin.webjar</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.webjars.bowergithub.insites</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.webjars.bowergithub.polymer</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.webjars.bowergithub.polymerelements</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.webjars.bowergithub.vaadin</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.webjars.bowergithub.webcomponents</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- Added to provide logging output as Vaadin uses -->
+		<!-- the unbound SLF4J no-operation (NOP) logger implementation -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.1.0</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.enterprise</groupId>
+			<artifactId>cdi-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>javax.annotation</groupId>
+			<artifactId>javax.annotation-api</artifactId>
+		</dependency>
+	</dependencies>
+
 	<build>
-		<finalName>${project.artifactId}-${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</finalName>
+		<finalName>sebcord-bot</finalName>
 		<pluginManagement>
 			<plugins>
 				<plugin>
@@ -97,6 +186,38 @@
 
 		<plugins>
 			<plugin>
+				<groupId>com.github.eirslett</groupId>
+				<artifactId>frontend-maven-plugin</artifactId>
+				<version>1.8.0</version>
+				<executions>
+					<execution>
+						<id>install node and npm</id>
+						<goals>
+							<goal>install-node-and-npm</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<nodeVersion>${node.version}</nodeVersion>
+				</configuration>
+			</plugin>
+
+			<!-- Take care of synchronizing java dependencies and imports in package.json 
+				and main.js files. It also creates webpack.config.js if not exists yet. -->
+			<plugin>
+				<groupId>com.vaadin</groupId>
+				<artifactId>vaadin-maven-plugin</artifactId>
+				<version>${vaadin.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-frontend</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
@@ -116,7 +237,7 @@
 					<threshold>Low</threshold>
 					<skip>${skipSpotbugs}</skip>
 					<xmlOutput>false</xmlOutput>
-					<excludeFilterFile>../spotbugs-exclude.xml</excludeFilterFile>
+					<excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
 				</configuration>
 				<dependencies>
 					<dependency>
@@ -140,5 +261,40 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<!-- Production mode is activated using -Pproduction -->
+			<id>production</id>
+			<properties>
+				<vaadin.productionMode>true</vaadin.productionMode>
+			</properties>
+
+			<dependencies>
+				<dependency>
+					<groupId>com.vaadin</groupId>
+					<artifactId>flow-server-production-mode</artifactId>
+				</dependency>
+			</dependencies>
+
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.vaadin</groupId>
+						<artifactId>vaadin-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<goals>
+									<goal>build-frontend</goal>
+								</goals>
+								<phase>compile</phase>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+	</profiles>
 
 </project>
