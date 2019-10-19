@@ -1,13 +1,16 @@
 /*
- * Copyright GEMTEC GmbH 2019
- *
  * Erstellt am: 14 Oct 2019 20:54:57
  * Erstellt von: Jonas Michel
  */
 package coffee.michel.sebcord.bot.core;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
+import javax.annotation.PreDestroy;
+import javax.annotation.Resource;
+import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Event;
@@ -40,18 +43,23 @@ public class Initializer {
 	@Inject
 	private Event<MessageEvent> cmdEvent;
 
+	@Resource
+	private ManagedExecutorService exe;
+	private DiscordClient client;
+
 	/**
 	 * @param unused
 	 */
 	public void init(@Observes @Initialized(ApplicationScoped.class) Object unused) {
 		logger.debug("({}): init: Initialising bot with token {}", identityHashCode, token);
-		DiscordClient client = new DiscordClientBuilder(token).build();
+		client = new DiscordClientBuilder(token).build();
 		client.getEventDispatcher().on(MessageCreateEvent.class).subscribe(event -> {
 			Message message = event.getMessage();
 			Optional<String> content = message.getContent();
 			if (!content.isPresent())
 				return;
 			String c = content.get();
+			logger.debug("({}): init: Nachricht empfangen {}", identityHashCode, message);
 			if (c.startsWith(MessageEvent.COMMAND_IDENTIFIER)) {
 				MessageEvent event2 = new MessageEvent();
 				event2.setMessage(event.getMessage());
@@ -59,8 +67,14 @@ public class Initializer {
 			}
 		});
 
-		client.login();
+		exe.submit(() -> {
+			client.login().block();
+		});
+	}
 
+	@PreDestroy
+	public void shutdown() {
+		client.logout().block(Duration.of(30L, ChronoUnit.SECONDS));
 	}
 
 }

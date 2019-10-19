@@ -1,6 +1,4 @@
 /*
- * Copyright GEMTEC GmbH 2019
- *
  * Erstellt am: 14 Oct 2019 22:10:39
  * Erstellt von: Jonas Michel
  */
@@ -33,19 +31,15 @@ public class MatchCommandImpl {
 		if (!text.startsWith(MATCH_COMMAND_IDENTIFIER))
 			return;
 
-		message.getUserMentions()
-			   .map(User::getUsername)
-			   .map(s -> s.chars().sum())
-			   // reverse sort
-			   .collectSortedList((i1,i2) -> Integer.compare(i2, i1))
-			   .subscribe(sums -> {
-				   if(sums.isEmpty() || sums.size() == 1)
-					   sendForeverAllone(message);
-				   else
-					   sendMatchResult(message, calcMatchPercentage(sums));
-			   });
+		message.getUserMentions().map(User::getUsername).map(s -> s.chars().sum())
+			// reverse sort
+			.collectSortedList((i1, i2) -> Integer.compare(i2, i1)).subscribe(sums -> {
+				if (sums.isEmpty() || sums.size() == 1)
+					sendForeverAllone(message);
+				else
+					sendMatchResult(message, calcMatchPercentage(sums));
+			});
 	}
-
 
 	private void sendForeverAllone(Message message) {
 		message.getChannel().subscribe(ch -> {
@@ -56,7 +50,7 @@ public class MatchCommandImpl {
 	private double calcMatchPercentage(List<Integer> sums) {
 		Integer max = sums.get(0);
 		Integer ongoingResult = sums.get(1);
-		for (int i = 2; i < sums.size(); i++) 
+		for (int i = 2; i < sums.size(); i++)
 			ongoingResult |= sums.get(i);
 		return (double) ongoingResult / (double) max;
 	}
