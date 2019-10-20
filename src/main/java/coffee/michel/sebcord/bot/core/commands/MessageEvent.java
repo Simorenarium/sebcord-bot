@@ -2,7 +2,7 @@
  * Erstellt am: 14 Oct 2019 22:09:57
  * Erstellt von: Jonas Michel
  */
-package coffee.michel.sebcord.bot.core;
+package coffee.michel.sebcord.bot.core.commands;
 
 import discord4j.core.object.entity.Message;
 

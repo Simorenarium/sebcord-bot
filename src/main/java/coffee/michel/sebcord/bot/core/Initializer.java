@@ -21,6 +21,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import coffee.michel.sebcord.bot.core.commands.MessageEvent;
 import discord4j.core.DiscordClient;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -63,7 +64,7 @@ public class Initializer {
 			if (c.startsWith(MessageEvent.COMMAND_IDENTIFIER)) {
 				MessageEvent event2 = new MessageEvent();
 				event2.setMessage(event.getMessage());
-				cmdEvent.fire(event2);
+				cmdEvent.fireAsync(event2);
 			}
 		});
 

@@ -1,0 +1,46 @@
+/*
+ * Copyright GEMTEC GmbH 2019
+ *
+ * Erstellt am: 19 Oct 2019 14:51:41
+ * Erstellt von: Jonas Michel
+ */
+package coffee.michel.sebcord.bot.core.commands;
+
+import javax.enterprise.event.ObservesAsync;
+
+import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.MessageChannel;
+
+/**
+ * @author Jonas Michel
+ *
+ */
+public class ShowLastMentionCommand extends AbstractCommand {
+
+	@Override
+	public String getCommand() {
+		return "count";
+	}
+
+	@Override
+	public String getDescription() {
+		return "Zählt die bissher geschrieben Nachrichten im aktuellen Channel.\n\t**Das kann durchaus eine Weile dauern.**";
+	}
+
+	@Override
+	public void onMessage(@ObservesAsync MessageEvent event) {
+		super.onMessage(event);
+	}
+
+	@Override
+	protected void handleCommand(MessageEvent event, String text) {
+		Message message = event.getMessage();
+		MessageChannel channel = message.getChannel().block();
+		if (channel == null)
+			return;
+
+		int messageCount = channel.getMessagesBefore(message.getId()).collectList().block().size();
+		channel.createMessage("Es wurden bissher " + messageCount + " Nachrichten geschrieben").subscribe();
+	}
+
+}
