@@ -15,7 +15,7 @@ import discord4j.core.object.entity.MessageChannel;
  * @author Jonas Michel
  *
  */
-public class ShowLastMentionCommand extends AbstractCommand {
+public class CountMessagesCommand extends AbstractCommand {
 
 	@Override
 	public String getCommand() {
@@ -28,12 +28,12 @@ public class ShowLastMentionCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync MessageEvent event) {
+	public void onMessage(@ObservesAsync CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
-	protected void handleCommand(MessageEvent event, String text) {
+	protected void handleCommand(CommandEvent event, String text) {
 		Message message = event.getMessage();
 		MessageChannel channel = message.getChannel().block();
 		if (channel == null)

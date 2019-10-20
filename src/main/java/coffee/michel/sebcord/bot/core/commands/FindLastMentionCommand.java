@@ -23,7 +23,7 @@ import reactor.core.publisher.Flux;
  * @author Jonas Michel
  *
  */
-public class CountMessageCommand extends AbstractCommand {
+public class FindLastMentionCommand extends AbstractCommand {
 
 	@Override
 	public String getCommand() {
@@ -36,12 +36,12 @@ public class CountMessageCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync MessageEvent event) {
+	public void onMessage(@ObservesAsync CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
-	protected void handleCommand(MessageEvent event, String text) {
+	protected void handleCommand(CommandEvent event, String text) {
 		Message message = event.getMessage();
 		MessageChannel channel = message.getChannel().block();
 		if (channel == null)
@@ -63,7 +63,7 @@ public class CountMessageCommand extends AbstractCommand {
 			Flux<Message> foundMessage = channel.getMessagesBefore(message.getId()).skipUntil(msg -> msg.getUserMentionIds().contains(users));
 			Message msg = foundMessage.blockFirst();
 			User originalAuthor = msg.getAuthor().get();
-			searchingMessage.edit(spec -> spec.setContent("Gefunden: \n" + originalAuthor.getMention() + ": " + msg.getContent().get())).block();
+			searchingMessage.edit(spec -> spec.setContent("Gefunden: \n`" + originalAuthor.getMention() + ": " + msg.getContent().get() + "`")).block();
 		}
 	}
 

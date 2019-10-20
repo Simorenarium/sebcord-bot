@@ -65,7 +65,7 @@ public class MainRouterLayout extends HorizontalLayout implements RouterLayout, 
 
 	@Override
 	public void beforeEnter(BeforeEnterEvent event) {
-		if (!authMgr.isAuthorized())
+		if (!authMgr.isAuthorized(event.getLocation()))
 			event.rerouteTo(AuthorizationPage.class);
 
 		Optional<UIFeature> optFeature = pageContainer.getPages().stream().filter(p -> p.getUIClass() == event.getNavigationTarget()).findAny();

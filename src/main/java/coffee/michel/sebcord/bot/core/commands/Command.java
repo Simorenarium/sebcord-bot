@@ -20,6 +20,6 @@ public interface Command {
 
 	String getDescription();
 
-	void onMessage(@ObservesAsync MessageEvent event);
+	void onMessage(@ObservesAsync CommandEvent event);
 
 }

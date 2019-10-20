@@ -12,7 +12,7 @@ import discord4j.core.object.entity.Message;
  * @author Jonas Michel
  *
  */
-public class MessageEvent {
+public class CommandEvent {
 
 	public static final String COMMAND_IDENTIFIER = "o/";
 

@@ -4,6 +4,7 @@
 */.thorntail-runner-cache
 *.log
 node
+node-modules
 target
 bin
 /package-lock.json

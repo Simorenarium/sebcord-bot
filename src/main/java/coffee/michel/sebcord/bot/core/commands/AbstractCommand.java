@@ -17,7 +17,7 @@ import discord4j.core.object.entity.Message;
 public abstract class AbstractCommand implements Command {
 
 	@Override
-	public void onMessage(MessageEvent event) {
+	public void onMessage(CommandEvent event) {
 		Message message = event.getMessage();
 		Optional<String> content = message.getContent();
 		if (!content.isPresent())
@@ -35,6 +35,6 @@ public abstract class AbstractCommand implements Command {
 		handleCommand(event, text);
 	}
 
-	protected abstract void handleCommand(MessageEvent event, String text);
+	protected abstract void handleCommand(CommandEvent event, String text);
 
 }

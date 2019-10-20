@@ -28,12 +28,12 @@ public class MatchCommandImpl extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync MessageEvent event) {
+	public void onMessage(@ObservesAsync CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
-	protected void handleCommand(MessageEvent event, String text) {
+	protected void handleCommand(CommandEvent event, String text) {
 		Message message = event.getMessage();
 		message.getUserMentions().map(User::getUsername).map(s -> s.chars().sum())
 			// reverse sort

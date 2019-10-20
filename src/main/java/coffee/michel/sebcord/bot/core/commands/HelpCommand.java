@@ -28,7 +28,7 @@ public class HelpCommand {
 	@Inject
 	private Instance<Command> commands;
 
-	public void onMessage(@ObservesAsync MessageEvent event) {
+	public void onMessage(@ObservesAsync CommandEvent event) {
 		Message message = event.getMessage();
 		Optional<String> content = message.getContent();
 		if (!content.isPresent())
