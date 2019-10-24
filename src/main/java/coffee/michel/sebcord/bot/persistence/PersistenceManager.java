@@ -5,6 +5,7 @@
 package coffee.michel.sebcord.bot.persistence;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -51,8 +52,21 @@ public class PersistenceManager {
 	public void setAuthorizedFeatures(String authKey, Set<String> features) {
 		Map<String, Lazy<Set<String>>> authorziedFeatures = droot.getAuthorziedFeatures();
 		authorziedFeatures.put(authKey, Lazy.Reference(features));
-
 		storage.store(authorziedFeatures);
+	}
+
+	public void addMutedUser(Long user, Instant until) {
+		droot.getMutedUsers().get().put(user, until);
+		storage.storeRoot();
+	}
+
+	public void removeMutedUser(Long user) {
+		droot.getMutedUsers().get().remove(user);
+		storage.storeRoot();
+	}
+
+	public Map<Long, Instant> getMutedUsers() {
+		return droot.getMutedUsers().get();
 	}
 
 }

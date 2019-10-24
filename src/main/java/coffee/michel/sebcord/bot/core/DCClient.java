@@ -35,6 +35,7 @@ import com.google.gson.JsonObject;
 
 import coffee.michel.sebcord.bot.core.commands.Command;
 import coffee.michel.sebcord.bot.core.commands.CommandEvent;
+import coffee.michel.sebcord.bot.core.messages.MessageEvent;
 import discord4j.core.DiscordClient;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -69,6 +70,8 @@ public class DCClient {
 
 	@Inject
 	private Event<CommandEvent> cmdEvent;
+	@Inject
+	private Event<MessageEvent> msgEvent;
 
 	@Resource
 	private ManagedExecutorService exe;
@@ -96,6 +99,10 @@ public class DCClient {
 				CommandEvent event2 = new CommandEvent();
 				event2.setMessage(event.getMessage());
 				cmdEvent.fireAsync(event2);
+			} else {
+				MessageEvent messageEvent = new MessageEvent();
+				messageEvent.setMessage(message);
+				msgEvent.fireAsync(messageEvent);
 			}
 		});
 
@@ -149,7 +156,6 @@ public class DCClient {
 	}
 
 	public String getAuthorizeWithDiscordLink() {
-		// TODO channge redirect url
 		return "https://discordapp.com/api/oauth2/authorize?client_id=" + clientId + "&redirect_uri=" + redirectURL + "&response_type=code&scope=identify";
 	}
 

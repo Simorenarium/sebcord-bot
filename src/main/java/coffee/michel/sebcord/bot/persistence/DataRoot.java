@@ -4,6 +4,7 @@
  */
 package coffee.michel.sebcord.bot.persistence;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +18,7 @@ import one.microstream.persistence.lazy.Lazy;
 class DataRoot {
 
 	private Map<String, Lazy<Set<String>>> authorziedFeatures = new HashMap<>();
+	private Lazy<Map<Long, Instant>> mutedUsers = Lazy.Reference(new HashMap<>());
 
 	public Map<String, Lazy<Set<String>>> getAuthorziedFeatures() {
 		return authorziedFeatures;
@@ -24,6 +26,10 @@ class DataRoot {
 
 	public void setAuthorziedFeatures(Map<String, Lazy<Set<String>>> authorziedFeatures) {
 		this.authorziedFeatures = authorziedFeatures;
+	}
+
+	public Lazy<Map<Long, Instant>> getMutedUsers() {
+		return mutedUsers;
 	}
 
 }

@@ -63,7 +63,7 @@ public class FindLastMentionCommand extends AbstractCommand {
 			Flux<Message> foundMessage = channel.getMessagesBefore(message.getId()).skipUntil(msg -> msg.getUserMentionIds().contains(users));
 			Message msg = foundMessage.blockFirst();
 			User originalAuthor = msg.getAuthor().get();
-			searchingMessage.edit(spec -> spec.setContent("Gefunden: \n`" + originalAuthor.getMention() + ": " + msg.getContent().get() + "`")).block();
+			searchingMessage.edit(spec -> spec.setContent("Gefunden: \n" + originalAuthor.getMention() + ": " + msg.getContent().get())).block();
 		}
 	}
 

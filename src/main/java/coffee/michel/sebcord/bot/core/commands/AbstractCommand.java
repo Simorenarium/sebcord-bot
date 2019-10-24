@@ -8,6 +8,9 @@ package coffee.michel.sebcord.bot.core.commands;
 
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import discord4j.core.object.entity.Message;
 
 /**
@@ -15,6 +18,8 @@ import discord4j.core.object.entity.Message;
  *
  */
 public abstract class AbstractCommand implements Command {
+
+	private static final Logger logger = LoggerFactory.getLogger(AbstractCommand.class);
 
 	@Override
 	public void onMessage(CommandEvent event) {
@@ -32,7 +37,11 @@ public abstract class AbstractCommand implements Command {
 			text = text.replaceFirst(getCommand(), "").trim();
 		else
 			return;
-		handleCommand(event, text);
+		try {
+			handleCommand(event, text);
+		} catch (Throwable e) {
+			logger.error("onMessage(): Error on Executing a Command: ", e);
+		}
 	}
 
 	protected abstract void handleCommand(CommandEvent event, String text);
