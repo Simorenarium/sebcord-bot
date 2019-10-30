@@ -44,12 +44,12 @@ public class HelpCommand {
 		else
 			return;
 
-		List<Command> allCommands = StreamSupport.stream(commands.spliterator(), false).collect(Collectors.toList());
+		List<Command> allCommands = StreamSupport.stream(commands.spliterator(), false).sorted((cmd1, cmd2) -> cmd1.getName().compareTo(cmd2.getName())).collect(Collectors.toList());
 		String s = "Hier sind alle Commands:\n\n";
 		s += "1. `help`\n\tZeigt diese Liste an.";
 		int i = 2;
 		for (Command command : allCommands) {
-			s += "\n" + (i++) + ". `" + command.getCommand() + "`\n\t" + command.getDescription();
+			s += "\n" + (i++) + ". `" + command.getCommandRegex() + "`\n\t" + command.getDescription();
 		}
 		final String commandList = s;
 		message.getChannel().subscribe(ch -> ch.createMessage(commandList).subscribe());

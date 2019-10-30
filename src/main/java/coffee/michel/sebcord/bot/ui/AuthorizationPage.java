@@ -6,8 +6,8 @@ package coffee.michel.sebcord.bot.ui;
 
 import javax.inject.Inject;
 
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
@@ -28,10 +28,11 @@ import coffee.michel.sebcord.bot.core.permission.AuthorizationManager;
 public class AuthorizationPage extends VerticalLayout {
 	private static final long serialVersionUID = -2585297208960680141L;
 
-	@Inject
 	private AuthorizationManager authMgr;
 
-	public AuthorizationPage() {
+	@Inject
+	public AuthorizationPage(AuthorizationManager authMgr) {
+		this.authMgr = authMgr;
 
 		H1 title = new H1("Sebcord-Bot");
 		Image image = new Image("icons/sebcord.png", "");
@@ -44,9 +45,9 @@ public class AuthorizationPage extends VerticalLayout {
 		Span text = new Span("Um die Features des Discord-Bots nutzen zu können, muss du dich mit deinem Discod-Account einloggen.Achso und hier noch die obligatorische Warnung:Diese Seite benutzt Cookies!");
 		text.setMaxWidth("300px");
 		Button login = new Button("Fortfahren");
-		login.addClickListener(ce -> UI.getCurrent().getPage().open(authMgr.getDiscordAuthPage()));
+		Anchor anchor = new Anchor(authMgr.getDiscordAuthPage(), login);
 
-		var wrapper = new HorizontalLayout(text, login);
+		var wrapper = new HorizontalLayout(text, anchor);
 		wrapper.setAlignItems(Alignment.START);
 
 		var centeringWrapper = new HorizontalLayout(wrapper);

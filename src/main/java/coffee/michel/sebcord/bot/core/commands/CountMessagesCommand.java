@@ -18,7 +18,12 @@ import discord4j.core.object.entity.MessageChannel;
 public class CountMessagesCommand extends AbstractCommand {
 
 	@Override
-	public String getCommand() {
+	public String getName() {
+		return "Count";
+	}
+
+	@Override
+	public String getCommandRegex() {
 		return "count";
 	}
 

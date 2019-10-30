@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>coffee.michel.sebcord.bot</groupId>
 	<artifactId>coffee.michel.sebcord.bot</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.2.0-SNAPSHOT</version>
 	<packaging>war</packaging>
 
 	<properties>
@@ -27,6 +27,10 @@
 		<repository>
 			<id>microstream-maven-releases</id>
 			<url>https://repo.microstream.one/repository/maven-public/</url>
+		</repository>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
 		</repository>
 	</repositories>
 
@@ -62,6 +66,12 @@
 
 
 	<dependencies>
+		<dependency>
+			<groupId>com.github.HayateLaTech</groupId>
+			<artifactId>OAuth2Discord</artifactId>
+			<version>-SNAPSHOT</version>
+		</dependency>
+
 		<dependency>
 			<groupId>one.microstream</groupId>
 			<artifactId>storage.embedded</artifactId>
@@ -172,10 +182,11 @@
 			<groupId>javax.annotation</groupId>
 			<artifactId>javax.annotation-api</artifactId>
 		</dependency>
+
 	</dependencies>
 
 	<build>
-		<finalName>sebcord-bot</finalName>
+		<finalName>sebcord-bot-${project.version}</finalName>
 		<pluginManagement>
 			<plugins>
 				<plugin>

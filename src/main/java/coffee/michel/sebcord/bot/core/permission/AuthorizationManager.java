@@ -5,22 +5,29 @@
 package coffee.michel.sebcord.bot.core.permission;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.SessionScoped;
 import javax.inject.Inject;
+import javax.servlet.http.Cookie;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.QueryParameters;
+import com.vaadin.flow.server.VaadinRequest;
+import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinSession;
 
 import coffee.michel.sebcord.bot.core.DCClient;
+import coffee.michel.sebcord.bot.core.DCClient.AccessTokenResponse;
 import coffee.michel.sebcord.bot.persistence.PersistenceManager;
 
 /**
@@ -29,6 +36,8 @@ import coffee.michel.sebcord.bot.persistence.PersistenceManager;
  */
 @SessionScoped
 public class AuthorizationManager implements Serializable {
+
+	private static final String DISCORD_ACCESS_TOKEN_COOKIE = "discord_accessToken";
 	private static final long serialVersionUID = 793268929709364939L;
 	private static final String AUTH_KEY_ATTRIBUTE_KEY = "coffee.michel.sebcord-bot.feature.authorization.key";
 
@@ -41,6 +50,7 @@ public class AuthorizationManager implements Serializable {
 	private transient PersistenceManager persistenceManager;
 	@Inject
 	private transient DCClient client;
+	private final String discordState = UUID.randomUUID().toString();
 
 	public boolean isAuthorized() {
 		String accessToken = getAuthKey();
@@ -69,13 +79,17 @@ public class AuthorizationManager implements Serializable {
 		return String.valueOf(authKey);
 	}
 
-	private void setAuthKey(String value) {
-		String accessToken = client.getAccessToken(value);
+	private boolean setAuthKey(String value) {
+		AccessTokenResponse accessToken = client.getAccessToken(value, discordState);
 		if (accessToken == null)
-			return;
+			return false;
 
 		logger.debug("({}): setAuthKey: Authkey wird gesetzt. {}", identityHashCode, accessToken);
 		VaadinSession.getCurrent().setAttribute(AUTH_KEY_ATTRIBUTE_KEY, accessToken);
+		Cookie cookie = new Cookie(DISCORD_ACCESS_TOKEN_COOKIE, accessToken.getAccess_token());
+		cookie.setMaxAge(accessToken.getExpires_in());
+		VaadinResponse.getCurrent().addCookie(cookie);
+		return true;
 	}
 
 	public String getDiscordAuthPage() {
@@ -88,12 +102,19 @@ public class AuthorizationManager implements Serializable {
 
 		QueryParameters queryParameters = location.getQueryParameters();
 		List<String> list = queryParameters.getParameters().get("code");
-		if (list == null || list.isEmpty())
-			return false;
-		String token = list.get(0);
-		setAuthKey(token);
-		// TODO validate the user to be on the sebcord-discord
-		return true;
+		String token;
+		if (list == null || list.isEmpty()) {
+			Cookie[] cookies = VaadinRequest.getCurrent().getCookies();
+			if (cookies == null)
+				return false;
+			Optional<String> accessTokenFromCookie = Arrays.stream(cookies).filter(c -> c.getName().contentEquals(DISCORD_ACCESS_TOKEN_COOKIE)).findAny().map(Cookie::getValue);
+			if (accessTokenFromCookie.isEmpty())
+				return false;
+			token = accessTokenFromCookie.get();
+		} else {
+			token = list.get(0);
+		}
+		return setAuthKey(token);
 	}
 
 }

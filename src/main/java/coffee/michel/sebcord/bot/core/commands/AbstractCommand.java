@@ -7,6 +7,8 @@
 package coffee.michel.sebcord.bot.core.commands;
 
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +35,10 @@ public abstract class AbstractCommand implements Command {
 			text = text.replaceFirst(Command.COMMAND_INDICATOR, "").trim();
 		else
 			return;
-		if (text.startsWith(getCommand()))
-			text = text.replaceFirst(getCommand(), "").trim();
+		Pattern pattern = Pattern.compile(getCommandRegex());
+		Matcher matcher = pattern.matcher(text);
+		if (matcher.find())
+			text = text.replaceFirst(matcher.group(), "").trim();
 		else
 			return;
 		try {

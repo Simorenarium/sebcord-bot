@@ -26,7 +26,12 @@ import reactor.core.publisher.Flux;
 public class FindLastMentionCommand extends AbstractCommand {
 
 	@Override
-	public String getCommand() {
+	public String getName() {
+		return "Erwähnungs-Suche";
+	}
+
+	@Override
+	public String getCommandRegex() {
 		return "lastMention";
 	}
 

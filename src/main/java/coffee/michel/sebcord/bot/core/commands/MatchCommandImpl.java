@@ -18,13 +18,18 @@ import discord4j.core.object.entity.User;
 public class MatchCommandImpl extends AbstractCommand {
 
 	@Override
-	public String getCommand() {
+	public String getName() {
+		return "Pseudo-Parship";
+	}
+
+	@Override
+	public String getCommandRegex() {
 		return "match";
 	}
 
 	@Override
 	public String getDescription() {
-		return "Gibt euch die Info wie sehr ihr zusammenpasst.\n\tPolygamie ist eine Option!";
+		return "Gibt euch die Info wie sehr ihr zusammenpasst. Die erwähnten User werden gematched.\n\tPolygamie ist eine Option!";
 	}
 
 	@Override

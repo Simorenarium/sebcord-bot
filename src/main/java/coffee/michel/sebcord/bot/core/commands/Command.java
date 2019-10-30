@@ -16,7 +16,9 @@ public interface Command {
 
 	static final String COMMAND_INDICATOR = "o/";
 
-	String getCommand();
+	String getName();
+
+	String getCommandRegex();
 
 	String getDescription();
 
