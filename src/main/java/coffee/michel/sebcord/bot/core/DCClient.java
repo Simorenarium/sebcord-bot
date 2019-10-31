@@ -53,6 +53,7 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.MessageChannel;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.util.Snowflake;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -203,7 +204,8 @@ public class DCClient {
 	}
 
 	public Guild getGuild() {
-		return client.getGuilds().filter(g -> Objects.deepEquals(g.getId().asLong(), handledServerId)).blockFirst();
+		Flux<Guild> guilds = client.getGuilds().filter(g -> Objects.deepEquals(g.getId().asLong(), handledServerId));
+		return guilds.collectList().block().get(0);
 	}
 
 	public AccessTokenResponse getAccessToken(String loginToken, String state) {

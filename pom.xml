@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>coffee.michel.sebcord.bot</groupId>
 	<artifactId>coffee.michel.sebcord.bot</artifactId>
-	<version>1.2.0-SNAPSHOT</version>
+	<version>1.3.0-SNAPSHOT</version>
 	<packaging>war</packaging>
 
 	<properties>
@@ -31,6 +31,16 @@
 		<repository>
 			<id>jitpack.io</id>
 			<url>https://jitpack.io</url>
+		</repository>
+
+		<!-- twitch -->
+		<repository>
+			<id>jcenter</id>
+			<url>https://jcenter.bintray.com/</url>
+		</repository>
+		<repository>
+			<id>jcenter-snapshot</id>
+			<url>https://oss.jfrog.org/artifactory/libs-release/</url>
 		</repository>
 	</repositories>
 
@@ -183,6 +193,11 @@
 			<artifactId>javax.annotation-api</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>com.github.twitch4j</groupId>
+			<artifactId>twitch4j</artifactId>
+			<version>1.0.0-alpha.17</version>
+		</dependency>
 	</dependencies>
 
 	<build>
