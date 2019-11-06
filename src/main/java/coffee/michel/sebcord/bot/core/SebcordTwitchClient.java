@@ -27,6 +27,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import coffee.michel.sebcord.bot.persistence.PersistenceManager;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.GuildChannel;
 import discord4j.core.object.entity.TextChannel;
@@ -59,10 +60,11 @@ public class SebcordTwitchClient {
 	@Inject
 	private DCClient dcClient;
 
+	@Inject
+	private PersistenceManager persistence;
+
 	@Resource
 	private ManagedScheduledExecutorService exe;
-
-	private String lastStreamId = "";
 
 	public void init(@SuppressWarnings("unused") @Observes @Initialized(ApplicationScoped.class) Object unused) {
 
@@ -89,10 +91,15 @@ public class SebcordTwitchClient {
 					if (!stream.get("user_name").getAsString().equalsIgnoreCase(trackedChannelName))
 						continue;
 
+					var lastStreamId = persistence.getLastAnnouncedStream();
+
 					String newestId = stream.get("id").getAsString();
-					if (newestId.equals(lastStreamId))
+					if (newestId.equals(lastStreamId) || lastStreamId.isEmpty()) {
+						persistence.setLastAnnouncedStream(newestId);
 						return;
+					}
 					lastStreamId = newestId;
+					persistence.setLastAnnouncedStream(newestId);
 
 					Guild guild = dcClient.getGuild();
 					GuildChannel channel = guild.getChannelById(Snowflake.of(liveNotificationChannelId)).block();

@@ -69,4 +69,22 @@ public class PersistenceManager {
 		return droot.getMutedUsers().get();
 	}
 
+	public Map<Long, Instant> getLastMessageForUsers() {
+		return droot.getLastUserMessage();
+	}
+
+	public void persistLastMessageForUsers(Map<Long, Instant> val) {
+		droot.getLastUserMessage().putAll(val);
+		storage.storeRoot();
+	}
+
+	public String getLastAnnouncedStream() {
+		return droot.getLastAnnouncedStreamId();
+	}
+
+	public void setLastAnnouncedStream(String lastAnnouncedStream) {
+		droot.setLastAnnouncedStreamId(lastAnnouncedStream);
+		storage.storeRoot();
+	}
+
 }

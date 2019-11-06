@@ -20,6 +20,10 @@ class DataRoot {
 	private Map<String, Lazy<Set<String>>> authorziedFeatures = new HashMap<>();
 	private Lazy<Map<Long, Instant>> mutedUsers = Lazy.Reference(new HashMap<>());
 
+	private String lastAnnouncedStreamId = "";
+
+	private Map<Long, Instant> lastUserMessage = new HashMap<>();
+
 	public Map<String, Lazy<Set<String>>> getAuthorziedFeatures() {
 		return authorziedFeatures;
 	}
@@ -30,6 +34,18 @@ class DataRoot {
 
 	public Lazy<Map<Long, Instant>> getMutedUsers() {
 		return mutedUsers;
+	}
+
+	public Map<Long, Instant> getLastUserMessage() {
+		return lastUserMessage;
+	}
+
+	public String getLastAnnouncedStreamId() {
+		return lastAnnouncedStreamId;
+	}
+
+	public void setLastAnnouncedStreamId(String lastAnnouncedStreamId) {
+		this.lastAnnouncedStreamId = lastAnnouncedStreamId;
 	}
 
 }

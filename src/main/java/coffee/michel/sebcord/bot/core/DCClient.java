@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import javax.enterprise.concurrent.ManagedExecutorService;
+import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Event;
@@ -39,6 +40,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import coffee.michel.sebcord.bot.core.DCClient.AccessTokenResponse;
 import coffee.michel.sebcord.bot.core.commands.Command;
 import coffee.michel.sebcord.bot.core.commands.CommandEvent;
 import coffee.michel.sebcord.bot.core.messages.MessageEvent;
@@ -52,6 +54,7 @@ import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.MessageChannel;
 import discord4j.core.object.entity.User;
+import discord4j.core.object.util.Permission;
 import discord4j.core.object.util.Snowflake;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -84,6 +87,9 @@ public class DCClient {
 	@Inject
 	@ConfigProperty(name = "discord.bot.handled_server")
 	private long handledServerId;
+	@Inject
+	@ConfigProperty(name = "discord.bot.developer.userId")
+	private long developerUserId;
 
 	@Inject
 	@ConfigProperty(name = "discord.bot.roleTransitions")
@@ -96,7 +102,7 @@ public class DCClient {
 	private Event<MessageEvent> msgEvent;
 
 	@Resource
-	private ManagedExecutorService exe;
+	private ManagedScheduledExecutorService exe;
 	private DiscordClient client;
 
 	/**
@@ -125,6 +131,7 @@ public class DCClient {
 				for (Member member : allMembers) {
 					handleMemberUpdate(new MemberUpdateEvent(client, guild.getId().asLong(), member.getId().asLong(), null, member.getRoleIds().stream().map(Snowflake::asLong).mapToLong(Long::valueOf).toArray(), member.getNickname().orElse(null)));
 				}
+
 			} catch (Throwable t) {
 				t.printStackTrace();
 			}
@@ -184,7 +191,7 @@ public class DCClient {
 
 	private void forwardMessage(Message message, Optional<User> author) {
 		User user = author.get();
-		if (user.getUsername().equals("Simorenarium")) {
+		if (user.getId().asLong() == developerUserId) {
 			String string = message.getContent().get();
 			String[] msgParts = string.split("\\|");
 			Guild targetGuild = client.getGuilds().filter(g -> g.getId().asLong() == handledServerId).blockFirst();
@@ -203,9 +210,27 @@ public class DCClient {
 		client.logout().block(Duration.of(30L, ChronoUnit.SECONDS));
 	}
 
+	public boolean isAdminOrDev(Message message) {
+		boolean isAdmin = message.getAuthorAsMember().map(member -> member.getBasePermissions().block().stream().filter(p -> p == Permission.ADMINISTRATOR).count() > 0).block();
+		boolean isDev = message.getAuthor().filter(user -> {
+			long asLong = user.getId().asLong();
+			return asLong == developerUserId;
+		}).isPresent();
+		boolean isAllowed = isAdmin || isDev;
+		return isAllowed;
+	}
+
+	public DiscordClient getClient() {
+		return client;
+	}
+
 	public Guild getGuild() {
 		Flux<Guild> guilds = client.getGuilds().filter(g -> Objects.deepEquals(g.getId().asLong(), handledServerId));
 		return guilds.collectList().block().get(0);
+	}
+
+	public Flux<Guild> getGuildFlux() {
+		return client.getGuilds().filter(g -> Objects.deepEquals(g.getId().asLong(), handledServerId)).take(0);
 	}
 
 	public AccessTokenResponse getAccessToken(String loginToken, String state) {
@@ -221,7 +246,7 @@ public class DCClient {
 		form.param("grant_type", "authorization_code");
 		target = target.queryParam("code", loginToken);
 		form.param("code", loginToken);
-		target = target.queryParam("redirect_url", redirectURL);
+		target = target.queryParam("redirect_uri", redirectURL);
 		form.param("redirect_url", redirectURL);
 		target = target.queryParam("scope", "identify");
 		form.param("scope", "identify");
@@ -248,10 +273,14 @@ public class DCClient {
 		return idElement.getAsLong();
 	}
 
-	public boolean isUserOnKnownServer(long userId) {
-		return client.getGuilds().map(g -> {
-			return g.getMemberById(Snowflake.of(userId)).block();
-		}).count().map(c -> c > 0).block();
+	public Set<Permission> getPermissionsInGuild(long userId) {
+		Guild g = getGuild();
+		Member m = g.getMemberById(Snowflake.of(userId)).block();
+		return m.getRoles().map(role -> role.getPermissions()).map(permSet -> permSet.stream().collect(Collectors.toSet())).reduce((set1, set2) -> {
+			Set<Permission> permissions = new HashSet<>(set1);
+			permissions.addAll(set2);
+			return permissions;
+		}).block();
 	}
 
 	public String getAuthorizeWithDiscordLink() {

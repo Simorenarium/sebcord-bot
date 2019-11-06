@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import discord4j.core.object.util.Permission;
+
 /**
  * @author Jonas Michel
  *
@@ -20,11 +22,11 @@ public interface UIFeature {
 
 	List<UIFeature> getChildFeatures();
 
-	default List<UIFeature> getChildFeatures(Set<String> permissions) {
+	default List<UIFeature> getChildFeatures(Set<Permission> permissions) {
 		return filter(getChildFeatures(), permissions);
 	}
 
-	Set<String> getPermissions();
+	Set<Permission> getPermissions();
 
 	public interface UIVisualization {
 
@@ -32,7 +34,7 @@ public interface UIFeature {
 
 	}
 
-	public static List<UIFeature> filter(List<UIFeature> features, Set<String> permissions) {
+	public static List<UIFeature> filter(List<UIFeature> features, Set<Permission> permissions) {
 		return features.stream().filter(cf -> permissions.containsAll(cf.getPermissions())).collect(Collectors.toList());
 	}
 }

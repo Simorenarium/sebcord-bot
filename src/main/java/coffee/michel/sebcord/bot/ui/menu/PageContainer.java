@@ -10,6 +10,8 @@ import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import discord4j.core.object.util.Permission;
+
 /**
  * @author Jonas Michel
  *
@@ -27,7 +29,7 @@ public class PageContainer {
 		return allFeatures;
 	}
 
-	public List<UIFeature> getPages(Set<String> permissions) {
+	public List<UIFeature> getPages(Set<Permission> permissions) {
 		return UIFeature.filter(allFeatures, permissions);
 	}
 

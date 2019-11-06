@@ -1,5 +1,4 @@
 /*
- * Copyright GEMTEC GmbH 2019
  *
  * Erstellt am: 20 Oct 2019 12:22:56
  * Erstellt von: Jonas Michel
@@ -35,7 +34,8 @@ public abstract class AbstractCommand implements Command {
 			text = text.replaceFirst(Command.COMMAND_INDICATOR, "").trim();
 		else
 			return;
-		Pattern pattern = Pattern.compile(getCommandRegex());
+		String commandRegex = getCommandRegex();
+		Pattern pattern = Pattern.compile(commandRegex);
 		Matcher matcher = pattern.matcher(text);
 		if (matcher.find())
 			text = text.replaceFirst(matcher.group(), "").trim();

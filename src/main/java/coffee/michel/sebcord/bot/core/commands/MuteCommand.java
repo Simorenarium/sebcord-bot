@@ -21,6 +21,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.ObservesAsync;
+import javax.enterprise.inject.spi.CDI;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -28,11 +29,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import coffee.michel.sebcord.bot.core.DCClient;
 import coffee.michel.sebcord.bot.persistence.PersistenceManager;
 import discord4j.core.object.entity.Guild;
-import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.MessageChannel;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.util.Permission;
 import discord4j.core.object.util.Snowflake;
 import reactor.core.publisher.Flux;
 
@@ -60,7 +59,7 @@ public class MuteCommand extends AbstractCommand {
 	public void init(@SuppressWarnings("unused") @Observes @Initialized(ApplicationScoped.class) Object unused) {
 		exe.scheduleWithFixedDelay(() -> {
 			try {
-				Map<Long, Instant> mutedUsers = persistenceMgr.getMutedUsers();
+				Map<Long, Instant> mutedUsers = CDI.current().select(PersistenceManager.class).get().getMutedUsers();
 				Set<Long> userIdsToUnmute = mutedUsers.entrySet().stream().filter(e -> Instant.now().isAfter(e.getValue())).map(Entry::getKey).collect(Collectors.toSet());
 
 				Guild guild = client.getGuild();
@@ -99,10 +98,7 @@ public class MuteCommand extends AbstractCommand {
 		if (channel == null)
 			return;
 
-		User author = message.getAuthor().get();
-		Member mAuthor = author.asMember(message.getGuild().block().getId()).block();
-		Boolean hasPermissions = mAuthor.getRoles().filter(role -> role.getPermissions().contains(Permission.KICK_MEMBERS)).hasElements().block();
-		if (!hasPermissions) {
+		if (!client.isAdminOrDev(message)) {
 			channel.createMessage("Das kannst du nicht.").subscribe();
 			return;
 		}

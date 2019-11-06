@@ -15,7 +15,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.contextmenu.HasMenuItems;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.menubar.MenuBar;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
@@ -26,6 +26,7 @@ import com.vaadin.flow.theme.lumo.Lumo;
 import coffee.michel.sebcord.bot.core.permission.AuthorizationManager;
 import coffee.michel.sebcord.bot.ui.menu.PageContainer;
 import coffee.michel.sebcord.bot.ui.menu.UIFeature;
+import discord4j.core.object.util.Permission;
 
 /**
  * @author Jonas Michel
@@ -33,7 +34,7 @@ import coffee.michel.sebcord.bot.ui.menu.UIFeature;
  */
 @Route("")
 @Theme(value = Lumo.class, variant = Lumo.DARK)
-public class MainRouterLayout extends HorizontalLayout implements RouterLayout, BeforeEnterObserver {
+public class MainRouterLayout extends VerticalLayout implements RouterLayout, BeforeEnterObserver {
 	private static final long serialVersionUID = -8601586731968270221L;
 
 	private AuthorizationManager authMgr;
@@ -48,14 +49,14 @@ public class MainRouterLayout extends HorizontalLayout implements RouterLayout, 
 		this.pageContainer = pageContainer;
 		menuBar = new MenuBar();
 		menuBar.getStyle().set("border-right", "1px solid hsl(214, 34%, 34%)");
-		Set<String> currentPermissions = authMgr.getPermissions();
+		Set<Permission> currentPermissions = authMgr.getPermissions();
 		buildMenu(currentPermissions, menuBar, pageContainer.getPages(currentPermissions));
 
 		add(menuBar);
 		setHeightFull();
 	}
 
-	private void buildMenu(Set<String> currentPermissions, HasMenuItems parentItem, List<UIFeature> pages) {
+	private void buildMenu(Set<Permission> currentPermissions, HasMenuItems parentItem, List<UIFeature> pages) {
 		for (UIFeature page : pages) {
 			@SuppressWarnings("unchecked")
 			MenuItem item = parentItem.addItem(page.getName(), ce -> UI.getCurrent().navigate((Class<? extends Component>) page.getUIClass()));
@@ -72,7 +73,7 @@ public class MainRouterLayout extends HorizontalLayout implements RouterLayout, 
 		if (!optFeature.isPresent())
 			return;
 		UIFeature uiFeature = optFeature.get();
-		Set<String> currentPermissions = authMgr.getPermissions();
+		Set<Permission> currentPermissions = authMgr.getPermissions();
 		boolean allRequirementsMet = currentPermissions.containsAll(uiFeature.getPermissions());
 		if (!allRequirementsMet)
 			event.rerouteTo(UnauthorizedPage.class);

@@ -4,11 +4,14 @@
  */
 package coffee.michel.sebcord.bot.ui.giveaway;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import coffee.michel.sebcord.bot.ui.menu.UIFeature;
+import discord4j.core.object.util.Permission;
 
 /**
  * @author Jonas Michel
@@ -32,8 +35,8 @@ public class ViewGiveawayFeature implements UIFeature {
 	}
 
 	@Override
-	public Set<String> getPermissions() {
-		return Collections.emptySet();
+	public Set<Permission> getPermissions() {
+		return new HashSet<>(Arrays.asList(Permission.READ_MESSAGE_HISTORY));
 	}
 
 }

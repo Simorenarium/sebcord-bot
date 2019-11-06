@@ -34,7 +34,7 @@ public class ShowAvatarCommand extends AbstractCommand {
 
 	@Override
 	public String getDescription() {
-		return "Zeigt den Avatar in groß an. \n\tAm Ende das Command könnt ihr auch die größe in Pixeln angeben\n\tDie Standardgröße ist 256, je größer das Bild desto länger dauert es.";
+		return "Zeigt den Avatar in groß an. \n\tAm Ende das Command könnt ihr auch die größe in Pixeln angeben\n\tDie Standardgröße ist 256, je größer das Bild desto länger dauert es.\n\tDie Pixelangabe muss ein Faktor von 2 sein. (128, 256, 512...)";
 	}
 
 	@Override
@@ -55,12 +55,31 @@ public class ShowAvatarCommand extends AbstractCommand {
 		int size;
 		if (!results.isEmpty()) {
 			size = Integer.valueOf(results.get(results.size() - 1));
+			if (!isPowerOfTwo(size) || size > 2048) {
+				channel.createMessage("Die Pixelangabe muss ein Faktor von 2 sein und darf nicht 2048 überschreiten.").subscribe();
+				return;
+			}
 		} else
 			size = 256;
 
 		message.getUserMentions().map(u -> u.getAvatarUrl()).subscribe(avatar -> {
 			channel.createEmbed(spec -> spec.setImage(avatar + "?size=" + size)).subscribe();
 		});
+	}
+
+	private static boolean isPowerOfTwo(int number) {
+
+		if (number % 2 != 0) {
+			return false;
+		} else {
+
+			for (int i = 0; i <= number; i++) {
+
+				if (Math.pow(2, i) == number)
+					return true;
+			}
+		}
+		return false;
 	}
 
 }

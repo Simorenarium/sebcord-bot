@@ -52,6 +52,8 @@ public class FindLastMentionCommand extends AbstractCommand {
 		if (channel == null)
 			return;
 
+		// implement some way to skip mentions
+
 		Set<Snowflake> userMentionIds = message.getUserMentionIds();
 		if (userMentionIds.isEmpty()) {
 			Optional<Snowflake> optUserId = message.getAuthor().map(User::getId);

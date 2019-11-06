@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.SessionScoped;
 import javax.inject.Inject;
@@ -28,7 +27,7 @@ import com.vaadin.flow.server.VaadinSession;
 
 import coffee.michel.sebcord.bot.core.DCClient;
 import coffee.michel.sebcord.bot.core.DCClient.AccessTokenResponse;
-import coffee.michel.sebcord.bot.persistence.PersistenceManager;
+import discord4j.core.object.util.Permission;
 
 /**
  * @author Jonas Michel
@@ -45,31 +44,34 @@ public class AuthorizationManager implements Serializable {
 	private final int identityHashCode = System.identityHashCode(this);
 
 	@Inject
-	private transient FeatureController featureController;
-	@Inject
-	private transient PersistenceManager persistenceManager;
-	@Inject
 	private transient DCClient client;
 	private final String discordState = UUID.randomUUID().toString();
 
 	public boolean isAuthorized() {
+		Object userIdInSession = VaadinSession.getCurrent().getAttribute("discordUserId");
+		if (userIdInSession != null)
+			return true;
+
 		String accessToken = getAuthKey();
 		if (accessToken == null)
 			return false;
 
 		long userId = client.getUserId(accessToken);
-		if (userId <= 0)
+		if (userId < 0)
 			return false;
-		return client.isUserOnKnownServer(userId);
+		VaadinSession.getCurrent().setAttribute("discordUserId", userId);
+		return true;
 	}
 
-	public Set<String> getPermissions() {
-		String authKey = getAuthKey();
-		if (authKey == null)
+	public Set<Permission> getPermissions() {
+		if (!isAuthorized())
 			return Collections.emptySet();
-		Set<String> authorizedFeatures = persistenceManager.getAuthorizedFeatures(authKey);
-
-		return featureController.getAllFeatures().stream().filter(feature -> authorizedFeatures.contains(feature.getKey())).flatMap(f -> f.getPermissions().parallelStream()).collect(Collectors.toSet());
+		Object rawUserId = VaadinSession.getCurrent().getAttribute("discordUserId");
+		if (rawUserId != null) {
+			Long attribute = (Long) rawUserId;
+			return client.getPermissionsInGuild(attribute);
+		}
+		return Collections.emptySet();
 	}
 
 	private String getAuthKey() {
@@ -85,7 +87,7 @@ public class AuthorizationManager implements Serializable {
 			return false;
 
 		logger.debug("({}): setAuthKey: Authkey wird gesetzt. {}", identityHashCode, accessToken);
-		VaadinSession.getCurrent().setAttribute(AUTH_KEY_ATTRIBUTE_KEY, accessToken);
+		VaadinSession.getCurrent().setAttribute(AUTH_KEY_ATTRIBUTE_KEY, accessToken.getAccess_token());
 		Cookie cookie = new Cookie(DISCORD_ACCESS_TOKEN_COOKIE, accessToken.getAccess_token());
 		cookie.setMaxAge(accessToken.getExpires_in());
 		VaadinResponse.getCurrent().addCookie(cookie);

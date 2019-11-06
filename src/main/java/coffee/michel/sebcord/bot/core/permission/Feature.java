@@ -6,6 +6,8 @@ package coffee.michel.sebcord.bot.core.permission;
 
 import java.util.Set;
 
+import discord4j.core.object.util.Permission;
+
 /**
  * @author Jonas Michel
  *
@@ -13,10 +15,10 @@ import java.util.Set;
 public class Feature {
 
 	private final String key;
-	private final Set<String> permissions;
+	private final Set<Permission> permissions;
 
 	public Feature(	String key,
-					Set<String> permissions) {
+					Set<Permission> permissions) {
 		super();
 		this.key = key;
 		this.permissions = permissions;
@@ -26,7 +28,7 @@ public class Feature {
 		return this.key;
 	}
 
-	public Set<String> getPermissions() {
+	public Set<Permission> getPermissions() {
 		return this.permissions;
 	}
 
