@@ -1,6 +1,4 @@
 /*
- * Copyright GEMTEC GmbH 2019
- *
  * Erstellt am: 3 Nov 2019 19:02:51
  * Erstellt von: Jonas Michel
  */

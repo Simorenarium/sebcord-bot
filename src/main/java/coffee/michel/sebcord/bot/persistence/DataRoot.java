@@ -6,6 +6,7 @@ package coffee.michel.sebcord.bot.persistence;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,6 +20,7 @@ class DataRoot {
 
 	private Map<String, Lazy<Set<String>>> authorziedFeatures = new HashMap<>();
 	private Lazy<Map<Long, Instant>> mutedUsers = Lazy.Reference(new HashMap<>());
+	private Set<String> wordblacklist = new HashSet<>();
 
 	private String lastAnnouncedStreamId = "";
 
@@ -46,6 +48,10 @@ class DataRoot {
 
 	public void setLastAnnouncedStreamId(String lastAnnouncedStreamId) {
 		this.lastAnnouncedStreamId = lastAnnouncedStreamId;
+	}
+
+	public Set<String> getWordblacklist() {
+		return wordblacklist;
 	}
 
 }
