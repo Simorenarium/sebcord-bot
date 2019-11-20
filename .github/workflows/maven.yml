@@ -3,7 +3,7 @@ name: Java CI
 on:
   push:
   schedule:
-    - cron: "0 2 * * 1-7"
+    - cron: "0 2 * * 1-5"
 
 jobs:
   build:
