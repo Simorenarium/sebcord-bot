@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedScheduledExecutorService;
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.ObservesAsync;
 import javax.inject.Inject;
 
@@ -29,10 +30,12 @@ import discord4j.core.object.util.Snowflake;
  * @author Jonas Michel
  *
  */
+@ApplicationScoped
 public class BlacklistCommands {
 
 	private static final Predicate<String> wordMatcher = Pattern.compile("[a-zA-z]{1,}").asMatchPredicate();
 
+	@ApplicationScoped
 	static class BlacklistAdd extends AbstractCommand {
 
 		@Inject
@@ -80,6 +83,7 @@ public class BlacklistCommands {
 
 	}
 
+	@ApplicationScoped
 	static class BlacklistRemove extends AbstractCommand {
 
 		@Inject
@@ -126,6 +130,7 @@ public class BlacklistCommands {
 
 	}
 
+	@ApplicationScoped
 	static class BlacklistShow extends AbstractCommand {
 
 		@Inject
@@ -167,6 +172,7 @@ public class BlacklistCommands {
 
 	}
 
+	@ApplicationScoped
 	static class BlacklistMessageListener {
 
 		@Inject

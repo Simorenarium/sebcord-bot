@@ -92,7 +92,7 @@ public class SebcordTwitchClient {
 					var lastStreamId = persistence.getLastAnnouncedStream();
 
 					String newestId = stream.get("id").getAsString();
-					if (newestId.equals(lastStreamId) || lastStreamId.isEmpty()) {
+					if (newestId.equals(lastStreamId) && !lastStreamId.isEmpty()) {
 						persistence.setLastAnnouncedStream(newestId);
 						return;
 					}

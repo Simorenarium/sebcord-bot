@@ -4,6 +4,8 @@
  */
 package coffee.michel.sebcord.bot.core;
 
+import java.io.IOException;
+import java.net.URL;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -40,13 +42,13 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import coffee.michel.sebcord.bot.core.DCClient.AccessTokenResponse;
 import coffee.michel.sebcord.bot.core.commands.Command;
 import coffee.michel.sebcord.bot.core.commands.CommandEvent;
 import coffee.michel.sebcord.bot.core.messages.MessageEvent;
 import discord4j.core.DiscordClient;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.event.EventDispatcher;
+import discord4j.core.event.domain.guild.MemberJoinEvent;
 import discord4j.core.event.domain.guild.MemberUpdateEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Guild;
@@ -74,7 +76,7 @@ public class DCClient {
 
 	@Inject
 	@ConfigProperty(name = "discord.bot.clientId")
-	private String clientId;
+	private long clientId;
 	@Inject
 	@ConfigProperty(name = "discord.bot.client_secret")
 	private String clientSecret;
@@ -92,7 +94,10 @@ public class DCClient {
 	private long developerUserId;
 
 	@Inject
-	@ConfigProperty(name = "discord.bot.roleTransitions")
+	@ConfigProperty(name = "discord.bot.initRoles", defaultValue = "")
+	private String initRoles;
+	@Inject
+	@ConfigProperty(name = "discord.bot.roleTransitions", defaultValue = "")
 	private String roleTransitions;
 	private List<RoleTransition> mappedRoleTransitions = new LinkedList<>();
 
@@ -119,13 +124,25 @@ public class DCClient {
 			if (memberUpdate.getGuildId().asLong() == handledServerId)
 				handleMemberUpdate(memberUpdate);
 		});
+		eventDispatcher.on(MemberJoinEvent.class).subscribe(joinEvent -> {
+			Member member = joinEvent.getMember();
+			String[] split = initRoles.split(";");
+			if (split == null)
+				return;
+			for (String strId : split) {
+				if (!member.getRoleIds().contains(Snowflake.of(strId)))
+					member.addRole(Snowflake.of(strId)).subscribe();
+			}
+		});
 
 		exe.submit(() -> {
 			try {
 				client.login().subscribe();
 
 				Guild guild = getGuild();
-				mappedRoleTransitions = Arrays.stream(roleTransitions.split(RoleTransition.SPLITTER)).map(tr -> new RoleTransition(tr, guild)).collect(Collectors.toList());
+				String[] split = roleTransitions.split(RoleTransition.SPLITTER);
+				if (split != null)
+					mappedRoleTransitions = Arrays.stream(split).map(tr -> new RoleTransition(tr, guild)).collect(Collectors.toList());
 
 				List<Member> allMembers = guild.getMembers().collectList().block();
 				for (Member member : allMembers) {
@@ -182,6 +199,10 @@ public class DCClient {
 					MessageEvent messageEvent = new MessageEvent();
 					messageEvent.setMessage(message);
 					msgEvent.fireAsync(messageEvent);
+
+					Optional<User> author = message.getAuthor();
+					if (message.getUserMentionIds().contains(Snowflake.of(clientId)) && author.isPresent())
+						forwardToDeveloper(message, author.get());
 				}
 			} catch (Throwable t) {
 				logger.error("Fehler beim Verarbeiten der Nachricht.", t);
@@ -192,7 +213,7 @@ public class DCClient {
 	private void forwardMessage(Message message, Optional<User> author) {
 		User user = author.get();
 		if (user.getId().asLong() == developerUserId) {
-			String string = message.getContent().get();
+			String string = message.getContent().orElse("");
 			String[] msgParts = string.split("\\|");
 			Guild targetGuild = client.getGuilds().filter(g -> g.getId().asLong() == handledServerId).blockFirst();
 			targetGuild.getChannels().subscribe(channel -> {
@@ -202,7 +223,22 @@ public class DCClient {
 					((MessageChannel) channel).createMessage(msgParts[1]).subscribe();
 				}
 			});
+		} else if (user.getId().asLong() != clientId) {
+			forwardToDeveloper(message, user);
 		}
+	}
+
+	private void forwardToDeveloper(Message message, User user) {
+		client.getUserById(Snowflake.of(developerUserId)).flatMap(User::getPrivateChannel).subscribe(pChannel -> {
+			pChannel.createMessage(spec -> {
+				spec.setContent(user.getUsername() + ": " + message.getContent().orElse(""));
+				message.getAttachments().forEach(attc -> {
+					try {
+						spec.addFile(attc.getFilename(), new URL(attc.getUrl()).openStream());
+					} catch (IOException e) {}
+				});
+			}).subscribe();
+		});
 	}
 
 	@PreDestroy
@@ -239,7 +275,7 @@ public class DCClient {
 
 		Form form = new Form();
 		target = target.queryParam("client_id", clientId);
-		form.param("client_id", clientId);
+		form.param("client_id", "" + clientId);
 		target = target.queryParam("client_secret", clientSecret);
 		form.param("client_secret", clientSecret);
 		target = target.queryParam("grant_type", "authorization_code");

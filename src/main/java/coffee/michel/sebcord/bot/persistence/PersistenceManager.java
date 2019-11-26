@@ -40,6 +40,12 @@ public class PersistenceManager {
 
 		storage = EmbeddedStorage.start(droot, new File(dataDir, "sebcord"));
 		droot = (DataRoot) storage.root();
+
+		Set<String> lowercasewords = droot.getWordblacklist().stream().map(String::toLowerCase).collect(Collectors.toSet());
+		droot.getWordblacklist().clear();
+		droot.getWordblacklist().addAll(lowercasewords);
+		storage.store(droot);
+		storage.store(droot.getWordblacklist());
 	}
 
 	@PreDestroy
@@ -90,13 +96,15 @@ public class PersistenceManager {
 
 	public void setLastAnnouncedStream(String lastAnnouncedStream) {
 		droot.setLastAnnouncedStreamId(lastAnnouncedStream);
-		storage.storeRoot();
+		storage.store(droot);
+		storage.store(lastAnnouncedStream);
 	}
 
 	private static final String BLACKLIST_PATTERN_TEMPLATE = "(?:^|\\W)%s(?:$|\\W)";
 	private Map<Predicate<String>, String> cachedMatchers = new IdentityHashMap<>();
 
 	public Predicate<String> addWordToBlacklist(String word) {
+		word = word.toLowerCase();
 		Predicate<String> wordFinder = createCachedMatcher(word);
 		Set<String> blacklist = droot.getWordblacklist();
 		blacklist.add(word);
@@ -132,6 +140,7 @@ public class PersistenceManager {
 	}
 
 	public boolean removeWordFromBlacklist(String word) {
+		word = word.toLowerCase();
 		Set<String> blacklist = droot.getWordblacklist();
 		blacklist.remove(word);
 		storage.store(blacklist);
