@@ -7,68 +7,61 @@ package coffee.michel.sebcord.bot.core.commands;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
-import javax.enterprise.concurrent.ManagedScheduledExecutorService;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.Initialized;
+import javax.annotation.PostConstruct;
 import javax.enterprise.event.Observes;
-import javax.enterprise.event.ObservesAsync;
-import javax.enterprise.inject.spi.CDI;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
-import coffee.michel.sebcord.bot.core.DCClient;
+import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
+import coffee.michel.sebcord.bot.core.JDADCClient;
 import coffee.michel.sebcord.bot.persistence.PersistenceManager;
-import discord4j.core.object.entity.Guild;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.MessageChannel;
-import discord4j.core.object.entity.User;
-import discord4j.core.object.util.Snowflake;
-import reactor.core.publisher.Flux;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.Role;
 
 /**
  * @author Jonas Michel
  *
  */
-@ApplicationScoped
 public class MuteCommand extends AbstractCommand {
 
-	private static final Pattern DURATION_PATTERN = Pattern.compile("\\d*(m|M|d|D|h|H)");
+	private static final Pattern DURATION_PATTERN = Pattern.compile("(\\d+)(m|M|d|D|h|H)");
 
 	@Inject
-	private PersistenceManager persistenceMgr;
+	private ConfigurationPersistenceManager cpm = new ConfigurationPersistenceManager();
 	@Inject
-	private DCClient client;
-
+	private PersistenceManager              persistenceMgr;
 	@Inject
-	@ConfigProperty(name = "discord.bot.mute-role")
-	private Long muteRoleId;
+	private JDADCClient                     client;
+	@Inject
+	private ScheduledExecutorService        exe;
 
-	@Resource
-	private ManagedScheduledExecutorService exe;
-
-	public void init(@SuppressWarnings("unused") @Observes @Initialized(ApplicationScoped.class) Object unused) {
+	@PostConstruct
+	public void init() {
 		exe.scheduleWithFixedDelay(() -> {
+			final var muteRoleId = cpm.getBotConfig().getMuteRoleId();
 			try {
-				Map<Long, Instant> mutedUsers = CDI.current().select(PersistenceManager.class).get().getMutedUsers();
+				Map<Long, Instant> mutedUsers = persistenceMgr.getMutedUsers();
 				Set<Long> userIdsToUnmute = mutedUsers.entrySet().stream().filter(e -> Instant.now().isAfter(e.getValue())).map(Entry::getKey).collect(Collectors.toSet());
 
 				Guild guild = client.getGuild();
 				for (Long userId : userIdsToUnmute)
-					guild.getMemberById(Snowflake.of(userId)).subscribe(member -> member.removeRole(Snowflake.of(muteRoleId)).block());
+					guild.removeRoleFromMember(userId, guild.getRoleById(muteRoleId));
 			} catch (Throwable t) {
 				t.printStackTrace();
 			}
-		}, 2, 1, TimeUnit.MINUTES);
+		}, 0, 30, TimeUnit.SECONDS);
 	}
 
 	@Override
@@ -87,84 +80,83 @@ public class MuteCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync CommandEvent event) {
+	public void onMessage(@Observes CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
 	protected void handleCommand(CommandEvent event, String text) {
 		Message message = event.getMessage();
-		MessageChannel channel = message.getChannel().block();
-		if (channel == null)
-			return;
+		MessageChannel channel = message.getChannel();
 
 		if (!client.isAdminOrDev(message)) {
-			channel.createMessage("Das kannst du nicht.").subscribe();
+			channel.sendMessage("Das kannst du nicht.").queue();
 			return;
 		}
 
-		var guildId = message.getGuild().block().getId();
-		var textWithCommand = message.getContent().map(c -> c.replace("o/", "").trim()).get();
+		var textWithCommand = message.getContentRaw().replace("o/", "").trim();
 
 		if (textWithCommand.startsWith("mute"))
-			mute(text, message, channel, guildId);
+			mute(text, message, channel);
 		else
-			unmute(message, channel, guildId);
+			unmute(message, channel);
 	}
 
-	private void mute(String text, Message message, MessageChannel channel, Snowflake guildId) {
+	private void mute(String text, Message message, MessageChannel channel) {
 		Matcher matcher = DURATION_PATTERN.matcher(text);
 		if (!matcher.find()) {
-			channel.createMessage("Zeitangaben müssen wie folgt angegeben werden: [<nummer><zeiteinheit>]").subscribe();
+			channel.sendMessage("Zeitangaben müssen wie folgt angegeben werden: [<nummer><zeiteinheit>]").queue();
 			return;
 		}
-		String stringDuration = matcher.group();
-		String bracketsRemoved = stringDuration;
-		char timeUnitChar = bracketsRemoved.charAt(bracketsRemoved.length() - 1);
+		String duration = matcher.group(1);
+		String _timeUnit = matcher.group(2);
+		char timeUnitChar = _timeUnit.charAt(0);
 
-		Long amountToAdd = Long.valueOf(bracketsRemoved.substring(0, bracketsRemoved.length() - 1));
+		Long amountToAdd = Long.valueOf(duration);
 
 		TemporalUnit timeUnit;
 		switch (timeUnitChar) {
 			case 'd':
 			case 'D':
 				timeUnit = ChronoUnit.DAYS;
-				break;
+			break;
 			case 'h':
 			case 'H':
 				timeUnit = ChronoUnit.HOURS;
-				break;
+			break;
 			case 'm':
 			case 'M':
 				timeUnit = ChronoUnit.MINUTES;
-				break;
+			break;
 			default:
-				channel.createMessage("Zeitangaben müssen wie folgt angegeben werden: [<nummer><zeiteinheit>]").subscribe();
+				channel.sendMessage("Zeitangaben müssen wie folgt angegeben werden: [<nummer><zeiteinheit>]").queue();
 				return;
 		}
 
-		Flux<User> userMentions = message.getUserMentions();
-		if (!userMentions.hasElements().block()) {
-			channel.createMessage("Was auch immer, aber um jemanden zu muten musst du auch jemanden erwähnen.").subscribe();
+		List<Member> mentionedMembers = message.getMentionedMembers();
+		if (mentionedMembers.isEmpty()) {
+			channel.sendMessage("Was auch immer, aber um jemanden zu muten musst du auch jemanden erwähnen.").queue();
 			return;
 		}
-		userMentions.subscribe(user -> {
-			persistenceMgr.addMutedUser(user.getId().asLong(), Instant.now().plus(amountToAdd, timeUnit));
-			user.asMember(guildId).subscribe(member -> member.addRole(Snowflake.of(muteRoleId)).subscribe());
-			channel.createMessage(user.getMention() + " wurde gemuted.").block();
+		final Role muteRole = message.getGuild().getRoleById(cpm.getBotConfig().getMuteRoleId());
+		mentionedMembers.forEach(user -> {
+			persistenceMgr.addMutedUser(user.getIdLong(), Instant.now().plus(amountToAdd, timeUnit));
+			message.getGuild().addRoleToMember(user.getIdLong(), muteRole);
+			message.addReaction("✅").queue();
 		});
 	}
 
-	private void unmute(Message message, MessageChannel channel, Snowflake guildId) {
-		Flux<User> userMentions = message.getUserMentions();
-		if (!userMentions.hasElements().block()) {
-			channel.createMessage("Was auch immer, aber um jemanden zu entmuten musst du auch jemanden erwähnen.").subscribe();
+	private void unmute(Message message, MessageChannel channel) {
+		List<Member> mentionedMembers = message.getMentionedMembers();
+		if (mentionedMembers.isEmpty()) {
+			channel.sendMessage("Was auch immer, aber um jemanden zu entmuten musst du auch jemanden erwähnen.").queue();
 			return;
 		}
-		userMentions.subscribe(user -> {
-			persistenceMgr.removeMutedUser(user.getId().asLong());
-			user.asMember(guildId).subscribe(member -> member.removeRole(Snowflake.of(muteRoleId)).subscribe());
-			channel.createMessage(user.getMention() + " wurde entmuted.").block();
+		final Role muteRole = message.getGuild().getRoleById(cpm.getBotConfig().getMuteRoleId());
+		mentionedMembers.forEach(user -> {
+			persistenceMgr.removeMutedUser(user.getIdLong());
+			message.getGuild().removeRoleFromMember(user.getIdLong(), muteRole);
+			message.addReaction("✅").queue();
 		});
 	}
 

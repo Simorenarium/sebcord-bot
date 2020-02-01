@@ -4,7 +4,7 @@
  */
 package coffee.michel.sebcord.bot.core.messages;
 
-import discord4j.core.object.entity.Message;
+import net.dv8tion.jda.api.entities.Message;
 
 /**
  * Event for messages which are not commands.
@@ -24,8 +24,7 @@ public class MessageEvent {
 	}
 
 	/**
-	 * @param message
-	 *            the message to set
+	 * @param message the message to set
 	 */
 	public void setMessage(Message message) {
 		this.message = message;

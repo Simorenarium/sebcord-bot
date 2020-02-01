@@ -4,9 +4,9 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
-import javax.enterprise.event.ObservesAsync;
+import javax.enterprise.event.Observes;
 
-import discord4j.core.object.entity.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageChannel;
 
 /**
  * @author Jonas Michel
@@ -30,20 +30,20 @@ public class CalculateCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync CommandEvent event) {
+	public void onMessage(@Observes CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
 	protected void handleCommand(CommandEvent event, String text) {
-		MessageChannel channel = event.getMessage().getChannel().block();
+		MessageChannel channel = event.getMessage().getChannel();
 		if (channel == null)
 			return;
 
 		try {
-			channel.createMessage("Ergebnis: `" + eval(text.trim()) + "`").block();
+			channel.sendMessage("Ergebnis: `" + eval(text.trim()) + "`").queue();
 		} catch (Throwable t) {
-			channel.createMessage("Geht nich, da is irgendwas schief gelaufen.").block();
+			channel.sendMessage("Geht nich, da is irgendwas schief gelaufen.").queue();
 		}
 	}
 

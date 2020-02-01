@@ -4,18 +4,15 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import javax.enterprise.event.ObservesAsync;
+import javax.enterprise.event.Observes;
 
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.MessageChannel;
-import discord4j.core.object.entity.User;
-import discord4j.core.object.util.Snowflake;
-import reactor.core.publisher.Flux;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.User;
 
 /**
  * @author Jonas Michel
@@ -39,36 +36,42 @@ public class FindLastMentionCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync CommandEvent event) {
+	public void onMessage(@Observes CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
 	protected void handleCommand(CommandEvent event, String text) {
-		Message message = event.getMessage();
-		MessageChannel channel = message.getChannel().block();
+		var message = event.getMessage();
+		var channel = message.getChannel();
 		if (channel == null)
 			return;
 
 		// implement some way to skip mentions
+		channel.sendTyping().complete();
+		List<String> mentionedUsers = message.getMentionedUsers().stream().map(User::getId).collect(Collectors.toCollection(ArrayList::new));
+		if (mentionedUsers.isEmpty())
+			mentionedUsers = new ArrayList<String>(Arrays.asList(message.getAuthor().getId()));
 
-		Set<Snowflake> userMentionIds = message.getUserMentionIds();
-		if (userMentionIds.isEmpty()) {
-			Optional<Snowflake> optUserId = message.getAuthor().map(User::getId);
-			if (optUserId.isEmpty()) {
-				channel.createMessage("Nix gefunden").block();
+		var channelHistory = channel.getIterableHistory();
+		for (var prevMessage : channelHistory) {
+			if (prevMessage.getTimeCreated().isAfter(message.getTimeCreated()))
+				continue;
+
+			if (!mentionedUsers.removeIf(uId -> prevMessage.getMentionedUsers().stream().anyMatch(u -> u.getId().equals(uId))))
+				continue;
+
+			channel.sendMessage(prevMessage.getJumpUrl())
+					.embed(new EmbedBuilder().setAuthor(prevMessage.getMember().getEffectiveName())
+							.setTitle("Nachricht vom: " + prevMessage.getTimeCreated().toString(), prevMessage.getJumpUrl())
+							.addField("Nachricht", prevMessage.getContentDisplay(), true)
+							.build())
+					.queue();
+
+			if (mentionedUsers.isEmpty())
 				return;
-			}
-			userMentionIds = new HashSet<>(Arrays.asList(optUserId.get()));
-		}
-
-		for (Snowflake users : userMentionIds) {
-			Message searchingMessage = channel.createMessage("Suche...").block();
-
-			Flux<Message> foundMessage = channel.getMessagesBefore(message.getId()).skipUntil(msg -> msg.getUserMentionIds().contains(users));
-			Message msg = foundMessage.blockFirst();
-			User originalAuthor = msg.getAuthor().get();
-			searchingMessage.edit(spec -> spec.setContent("Gefunden: \n" + originalAuthor.getMention() + ": " + msg.getContent().get())).block();
+			else
+				channel.sendTyping().complete();
 		}
 	}
 

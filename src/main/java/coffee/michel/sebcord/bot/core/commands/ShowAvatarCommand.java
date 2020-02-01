@@ -4,21 +4,36 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.enterprise.event.ObservesAsync;
+import javax.enterprise.event.Observes;
 
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.MessageChannel;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
 
 /**
  * @author Jonas Michel
  *
  */
 public class ShowAvatarCommand extends AbstractCommand {
+
+	private static final Map<Double, Long> SCALE;
+	static {
+		Map<Double, Long> scale = new HashMap<Double, Long>();
+		scale.put(0.5, 128L);
+		scale.put(1.0, 256L);
+		scale.put(2.0, 512L);
+		scale.put(4.0, 1024L);
+		scale.put(8.0, 2048L);
+		SCALE = Collections.unmodifiableMap(scale);
+	}
 
 	@Override
 	public String getName() {
@@ -32,52 +47,42 @@ public class ShowAvatarCommand extends AbstractCommand {
 
 	@Override
 	public String getDescription() {
-		return "Zeigt den Avatar in groß an. \n\tAm Ende das Command könnt ihr auch die größe in Pixeln angeben\n\tDie Standardgröße ist 256, je größer das Bild desto länger dauert es.\n\tDie Pixelangabe muss ein Faktor von 2 sein. (128, 256, 512...)";
+		return "Zeigt den Avatar in groß an. \n\tAm Ende das Command könnt ihr auch eine Skalierung angeben\n\tDie Standardgröße ist 1x (256 Pixel), je größer das Bild desto länger dauert es.\n\tFolgende Scalierung sind möglich: (0,5; 1; 2; 4; 8).\nBei unbekannter skalierung wird 1 verwendet.";
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync CommandEvent event) {
+	public void onMessage(@Observes CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
 	protected void handleCommand(CommandEvent event, String text) {
 		Message message = event.getMessage();
-		MessageChannel channel = message.getChannel().block();
-		if (channel == null)
-			return;
+		MessageChannel channel = message.getChannel();
 
 		text = text.replaceAll("<.*>", "");
 		List<String> results = Pattern.compile("\\d*").matcher(text).results().map(MatchResult::group).filter(s -> !s.isEmpty()).collect(Collectors.toList());
 
-		int size;
+		long size = 256;
 		if (!results.isEmpty()) {
-			size = Integer.valueOf(results.get(results.size() - 1));
-			if (!isPowerOfTwo(size) || size > 2048) {
-				channel.createMessage("Die Pixelangabe muss ein Faktor von 2 sein und darf nicht 2048 überschreiten.").subscribe();
-				return;
-			}
-		} else
-			size = 256;
-
-		message.getUserMentions().map(u -> u.getAvatarUrl()).subscribe(avatar -> {
-			channel.createEmbed(spec -> spec.setImage(avatar + "?size=" + size)).subscribe();
-		});
-	}
-
-	private static boolean isPowerOfTwo(int number) {
-
-		if (number % 2 != 0) {
-			return false;
-		} else {
-
-			for (int i = 0; i <= number; i++) {
-
-				if (Math.pow(2, i) == number)
-					return true;
+			try {
+				String s = results.get(results.size() - 1);
+				if (s.trim().equals("0.5") || s.trim().equals("0,5")) {
+					size = SCALE.get(0.5);
+				} else {
+					var scale = Double.valueOf(s);
+					size = SCALE.getOrDefault(scale, 256L);
+				}
+			} catch (NumberFormatException e) {
 			}
 		}
-		return false;
+
+		final long detSize = size;
+
+		message.getMentionedUsers().stream().map(u -> u.getAvatarUrl()).forEach(avatar -> {
+			channel.sendMessage(new EmbedBuilder().setImage(avatar + "?size=" + detSize).build())
+					.queue();
+		});
 	}
 
 }

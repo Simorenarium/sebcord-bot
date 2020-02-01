@@ -10,12 +10,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.enterprise.event.ObservesAsync;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
-import coffee.michel.sebcord.bot.core.DCClient;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.MessageChannel;
+import coffee.michel.sebcord.bot.core.JDADCClient;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
 
 /**
  * @author Jonas Michel
@@ -26,7 +26,7 @@ public class PruneCommand extends AbstractCommand {
 	private Map<Long, Instant> lastPrunePerChannel = new ConcurrentHashMap<>();
 
 	@Inject
-	private DCClient client;
+	private JDADCClient client;
 
 	@Override
 	public String getName() {
@@ -44,44 +44,47 @@ public class PruneCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync CommandEvent event) {
+	public void onMessage(@Observes CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
 	protected void handleCommand(CommandEvent event, String text) {
 		Message message = event.getMessage();
-		MessageChannel channel = message.getChannel().block();
+		MessageChannel channel = message.getChannel();
 		if (channel == null)
 			return;
 
 		if (!client.isAdminOrDev(message)) {
-			channel.createMessage("Du kannst dat nich.").subscribe();
+			channel.sendMessage("Du kannst dat nich.").queue();
 			return;
 		}
 
-		long channelId = channel.getId().asLong();
+		long channelId = channel.getIdLong();
 		Instant lastPrumeTimestamp = lastPrunePerChannel.get(channelId);
-		Instant _30SecondsBefore = message.getTimestamp().minusSeconds(30);
+		Instant _30SecondsBefore = message.getTimeCreated().minusSeconds(30).toInstant();
 		if (lastPrumeTimestamp != null && lastPrumeTimestamp.isBefore(_30SecondsBefore)) {
-			channel.createMessage("Das geht erst wieder in " + ((Instant.now().toEpochMilli() - _30SecondsBefore.toEpochMilli()) / 1000) + " Sekunden.").subscribe();
+			channel.sendMessage("Das geht erst wieder in " + ((Instant.now().toEpochMilli() - _30SecondsBefore.toEpochMilli()) / 1000) + " Sekunden.").queue();
 			return;
 		}
 
 		Matcher matcher = Pattern.compile("\\d*").matcher(text);
 		if (!matcher.find()) {
-			channel.createMessage("Du musst schon eine Anzahl festlegen.").subscribe();
+			channel.sendMessage("Du musst schon eine Anzahl festlegen.").queue();
 			return;
 		}
 		Integer messagesToDelete = Integer.valueOf(matcher.group());
 		if (messagesToDelete > 100) {
-			channel.createMessage("Dat is zu viel.").subscribe();
+			channel.sendMessage("Dat is zu viel.").queue();
 			return;
 		}
 
-		channel.getMessagesBefore(message.getId()).take(messagesToDelete).subscribe(msg -> msg.delete().block());
-		message.delete().block();
-		channel.createMessage(messagesToDelete + " Nachrichten wurden gelöscht.").subscribe();
+		channel.getHistoryBefore(message, messagesToDelete)
+				.complete()
+				.getRetrievedHistory()
+				.forEach(msg -> msg.delete().queue());
+		message.delete().queue();
+		channel.sendMessage(messagesToDelete + " Nachrichten wurden gelöscht.").queue();
 	}
 
 }

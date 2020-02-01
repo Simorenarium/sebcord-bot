@@ -4,44 +4,39 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
-import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
-import javax.enterprise.concurrent.ManagedScheduledExecutorService;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.ObservesAsync;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
-import coffee.michel.sebcord.bot.core.DCClient;
+import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
+import coffee.michel.sebcord.bot.core.JDADCClient;
 import coffee.michel.sebcord.bot.core.messages.MessageEvent;
 import coffee.michel.sebcord.bot.persistence.PersistenceManager;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.User;
-import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.core.object.util.Snowflake;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.User;
 
 /**
  * @author Jonas Michel
  *
  */
-@ApplicationScoped
 public class BlacklistCommands {
 
 	private static final Predicate<String> wordMatcher = Pattern.compile("[a-zA-z]{1,}").asMatchPredicate();
 
-	@ApplicationScoped
-	static class BlacklistAdd extends AbstractCommand {
+	public static class BlacklistAdd extends AbstractCommand {
 
 		@Inject
 		private PersistenceManager persist;
 		@Inject
-		private DCClient client;
+		private JDADCClient        client;
 
 		@Override
 		public String getName() {
@@ -59,37 +54,35 @@ public class BlacklistCommands {
 		}
 
 		@Override
-		public void onMessage(@ObservesAsync CommandEvent event) {
+		public void onMessage(@Observes CommandEvent event) {
 			super.onMessage(event);
 		}
 
 		@Override
 		protected void handleCommand(CommandEvent event, String text) {
 			Message message = event.getMessage();
-			message.getChannel().subscribe(channel -> {
-				if (!client.isAdminOrDev(message)) {
-					channel.createMessage("Das kannst du nicht.").subscribe();
-					return;
-				}
+			MessageChannel channel = message.getChannel();
+			if (!client.isAdminOrDev(message)) {
+				channel.sendMessage("Das kannst du nicht!").queue();
+				return;
+			}
 
-				if (!wordMatcher.test(text)) {
-					channel.createMessage("Dat Wort darf nur Buchstaben enthalten und nich leer sein.").subscribe();
-					return;
-				}
-				persist.addWordToBlacklist(text);
-				message.addReaction(ReactionEmoji.unicode("✅")).subscribe();
-			});
+			if (!wordMatcher.test(text)) {
+				channel.sendMessage("Dat Wort darf nur Buchstaben enthalten und nich leer sein.").queue();
+				return;
+			}
+			persist.addWordToBlacklist(text);
+			message.addReaction("✅").queue();
 		}
 
 	}
 
-	@ApplicationScoped
-	static class BlacklistRemove extends AbstractCommand {
+	public static class BlacklistRemove extends AbstractCommand {
 
 		@Inject
 		private PersistenceManager persist;
 		@Inject
-		private DCClient client;
+		private JDADCClient        client;
 
 		@Override
 		public String getName() {
@@ -107,36 +100,34 @@ public class BlacklistCommands {
 		}
 
 		@Override
-		public void onMessage(@ObservesAsync CommandEvent event) {
+		public void onMessage(@Observes CommandEvent event) {
 			super.onMessage(event);
 		}
 
 		@Override
 		protected void handleCommand(CommandEvent event, String text) {
 			Message message = event.getMessage();
-			message.getChannel().subscribe(channel -> {
-				if (!client.isAdminOrDev(message)) {
-					channel.createMessage("Das kannst du nicht.").subscribe();
-					return;
-				}
+			MessageChannel channel = message.getChannel();
+			if (!client.isAdminOrDev(message)) {
+				channel.sendMessage("Das kannst du nicht.").queue();
+				return;
+			}
 
-				boolean found = persist.removeWordFromBlacklist(text);
-				if (found)
-					message.addReaction(ReactionEmoji.unicode("✅")).subscribe();
-				else
-					channel.createMessage("Hab ich nicht in der Blacklist gefunden.").subscribe();
-			});
+			boolean found = persist.removeWordFromBlacklist(text);
+			if (found)
+				message.addReaction("✅").queue();
+			else
+				channel.sendMessage("Hab ich nicht in der Blacklist gefunden.").queue();
 		}
 
 	}
 
-	@ApplicationScoped
-	static class BlacklistShow extends AbstractCommand {
+	public static class BlacklistShow extends AbstractCommand {
 
 		@Inject
 		private PersistenceManager persist;
 		@Inject
-		private DCClient client;
+		private JDADCClient        client;
 
 		@Override
 		public String getName() {
@@ -154,59 +145,53 @@ public class BlacklistCommands {
 		}
 
 		@Override
-		public void onMessage(@ObservesAsync CommandEvent event) {
+		public void onMessage(@Observes CommandEvent event) {
 			super.onMessage(event);
 		}
 
 		@Override
 		protected void handleCommand(CommandEvent event, String text) {
 			Message message = event.getMessage();
-			message.getChannel().subscribe(channel -> {
-				if (!client.isAdminOrDev(message)) {
-					channel.createMessage("Das kannst du nicht.").subscribe();
-					return;
-				}
-				channel.createMessage(persist.getBlacklistedWords().stream().collect(Collectors.joining(", "))).subscribe();
-			});
+			MessageChannel channel = message.getChannel();
+			if (!client.isAdminOrDev(message)) {
+				channel.sendMessage("Das kannst du nicht.").queue();
+				return;
+			}
+			channel.sendMessage(persist.getBlacklistedWords().stream().collect(Collectors.joining(", "))).queue();
 		}
 
 	}
 
-	@ApplicationScoped
-	static class BlacklistMessageListener {
+	public static class BlacklistMessageListener {
 
 		@Inject
-		private PersistenceManager persist;
+		private ConfigurationPersistenceManager cpm;
 		@Inject
-		@ConfigProperty(name = "discord.bot.mute-role")
-		private Long muteRoleId;
-		@Resource
-		private ManagedScheduledExecutorService exe;
+		private PersistenceManager              persist;
+		@Inject
+		private ScheduledExecutorService        exe;
 
-		public void onMessage(@ObservesAsync MessageEvent event) {
+		public void onMessage(@Observes MessageEvent event) {
 			Message message = event.getMessage();
-			message.getContent().ifPresent(content -> {
-				Optional<User> optAuthor = message.getAuthor();
-				String blockedWord = persist.getBlockedWord(content);
-				if (blockedWord == null || optAuthor.isEmpty())
-					return;
-				User author = optAuthor.get();
-				if (author.isBot())
-					return;
-				message.delete("'" + blockedWord + "' ist geblacklisted.").subscribe();
+			String content = message.getContentStripped();
+			User author = message.getAuthor();
+			String blockedWord = persist.getBlockedWord(content);
+			if (blockedWord == null || author.isBot())
+				return;
+			message.delete().complete();
 
-				author.getPrivateChannel().subscribe(pChannel -> {
-					pChannel.createMessage("Das Wort '" + blockedWord + "' ist auf der Blacklist.\nDeine Nachricht wurde entfernt.\nHier ist die entfernte Nachricht, falls du sie anpassen willst:\n" + content).subscribe();
-				});
-
-				message.getAuthorAsMember().subscribe(member -> {
-					exe.schedule(() -> {
-						member.removeRole(Snowflake.of(muteRoleId)).subscribe();
-					}, 15, TimeUnit.SECONDS);
-					member.addRole(Snowflake.of(muteRoleId)).subscribe();
-				});
-
+			author.openPrivateChannel().queue(pChannel -> {
+				pChannel.sendMessage("Das Wort '" + blockedWord + "' ist auf der Blacklist.\nDeine Nachricht wurde entfernt.\nHier ist die entfernte Nachricht, falls du sie anpassen willst:\n" + content).queue();
 			});
+
+			var muteRoleId = cpm.getBotConfig().getMuteRoleId();
+
+			Guild guild = message.getGuild();
+			Role role = guild.getRoleById(muteRoleId);
+			guild.addRoleToMember(author.getIdLong(), role);
+			exe.schedule(() -> {
+				guild.removeRoleFromMember(author.getIdLong(), role);
+			}, 15, TimeUnit.SECONDS);
 		}
 
 	}

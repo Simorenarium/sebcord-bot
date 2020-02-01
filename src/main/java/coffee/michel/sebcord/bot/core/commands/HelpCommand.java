@@ -7,15 +7,14 @@ package coffee.michel.sebcord.bot.core.commands;
 import static coffee.michel.sebcord.bot.core.commands.Command.COMMAND_INDICATOR;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import javax.enterprise.event.ObservesAsync;
+import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
-import discord4j.core.object.entity.Message;
+import net.dv8tion.jda.api.entities.Message;
 
 /**
  * @author Jonas Michel
@@ -26,13 +25,9 @@ public class HelpCommand {
 	@Inject
 	private Instance<Command> commands;
 
-	public void onMessage(@ObservesAsync CommandEvent event) {
+	public void onMessage(@Observes CommandEvent event) {
 		Message message = event.getMessage();
-		Optional<String> content = message.getContent();
-		if (!content.isPresent())
-			return;
-
-		String text = content.get().trim();
+		String text = message.getContentDisplay().trim();
 		if (text.startsWith(COMMAND_INDICATOR))
 			text = text.replaceFirst(COMMAND_INDICATOR, "").trim();
 		else
@@ -50,6 +45,6 @@ public class HelpCommand {
 			s += "\n" + (i++) + ". `" + command.getCommandRegex() + "`\n\t" + command.getDescription();
 		}
 		final String commandList = s;
-		message.getChannel().subscribe(ch -> ch.createMessage(commandList).subscribe());
+		message.getChannel().sendMessage(commandList).queue();
 	}
 }

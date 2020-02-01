@@ -4,10 +4,11 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
-import discord4j.core.object.entity.Message;
+import net.dv8tion.jda.api.entities.Message;
 
 /**
- * This is the same as a normal message event, but it was already determined to be a command
+ * This is the same as a normal message event, but it was already determined to
+ * be a command
  * 
  * @author Jonas Michel
  *
@@ -26,8 +27,7 @@ public class CommandEvent {
 	}
 
 	/**
-	 * @param message
-	 *            the message to set
+	 * @param message the message to set
 	 */
 	public void setMessage(Message message) {
 		this.message = message;

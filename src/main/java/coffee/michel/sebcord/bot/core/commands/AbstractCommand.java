@@ -5,14 +5,13 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import discord4j.core.object.entity.Message;
+import net.dv8tion.jda.api.entities.Message;
 
 /**
  * @author Jonas Michel
@@ -25,18 +24,12 @@ public abstract class AbstractCommand implements Command {
 	@Override
 	public void onMessage(CommandEvent event) {
 		Message message = event.getMessage();
-		Optional<String> content = message.getContent();
-		if (!content.isPresent())
-			return;
 
-		String text = content.get().trim();
-		if (text.startsWith(COMMAND_INDICATOR))
-			text = text.replaceFirst(Command.COMMAND_INDICATOR, "").trim();
-		else
-			return;
+		String text = message.getContentDisplay().trim();
+		text = text.replace(Command.COMMAND_INDICATOR, "").trim();
 		String commandRegex = getCommandRegex();
 		Pattern pattern = Pattern.compile(commandRegex);
-		Matcher matcher = pattern.matcher(text);
+		Matcher matcher = pattern.matcher(text.substring(0, text.indexOf(" ")).trim());
 		if (matcher.find())
 			text = text.replaceFirst(matcher.group(), "").trim();
 		else

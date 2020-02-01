@@ -6,6 +6,7 @@ package coffee.michel.sebcord.bot.persistence;
 
 import java.io.File;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -16,10 +17,11 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 
+import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
+import coffee.michel.sebcord.bot.data.MessageStoreTask.MessageData;
 import one.microstream.persistence.lazy.Lazy;
 import one.microstream.storage.types.EmbeddedStorage;
 import one.microstream.storage.types.EmbeddedStorageManager;
@@ -31,14 +33,16 @@ import one.microstream.storage.types.EmbeddedStorageManager;
 @ApplicationScoped
 public class PersistenceManager {
 
-	private DataRoot droot = new DataRoot();
-	private EmbeddedStorageManager storage;
+	private DataRoot                      droot = new DataRoot();
+	private static EmbeddedStorageManager storage;
 
-	@PostConstruct
-	public void init() {
-		String dataDir = System.getProperty("jboss.server.data.dir");
+	public PersistenceManager() {
+		File dataDir = ConfigurationPersistenceManager.getDataDir();
 
-		storage = EmbeddedStorage.start(droot, new File(dataDir, "sebcord"));
+		synchronized (PersistenceManager.class) {
+			if (storage == null)
+				storage = EmbeddedStorage.start(droot, new File(dataDir, "sebcord"));
+		}
 		droot = (DataRoot) storage.root();
 
 		Set<String> lowercasewords = droot.getWordblacklist().stream().map(String::toLowerCase).collect(Collectors.toSet());
@@ -100,8 +104,8 @@ public class PersistenceManager {
 		storage.store(lastAnnouncedStream);
 	}
 
-	private static final String BLACKLIST_PATTERN_TEMPLATE = "(?:^|\\W)%s(?:$|\\W)";
-	private Map<Predicate<String>, String> cachedMatchers = new IdentityHashMap<>();
+	private static final String            BLACKLIST_PATTERN_TEMPLATE = "(?:^|\\W)%s(?:$|\\W)";
+	private Map<Predicate<String>, String> cachedMatchers             = new IdentityHashMap<>();
 
 	public Predicate<String> addWordToBlacklist(String word) {
 		word = word.toLowerCase();
@@ -153,6 +157,26 @@ public class PersistenceManager {
 			}
 		}
 		return false;
+	}
+
+	public void storeMessage(long channelId, MessageData data) {
+		Map<Long, Lazy<List<Lazy<MessageData>>>> messages = droot.getMessages();
+		Lazy<List<Lazy<MessageData>>> channelMessages = messages.computeIfAbsent(channelId, id -> Lazy.Reference(new ArrayList<>()));
+		List<Lazy<MessageData>> list = channelMessages.get();
+		Lazy<MessageData> reference = Lazy.Reference(data);
+		list.add(reference);
+
+		storage.store(reference);
+		storage.store(list);
+		storage.store(channelMessages);
+		storage.store(messages);
+
+		Lazy.clear(reference);
+		Lazy.clear(channelMessages);
+	}
+
+	public Map<Long, Lazy<List<Lazy<MessageData>>>> getMessages() {
+		return droot.getMessages();
 	}
 
 }

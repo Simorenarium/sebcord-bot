@@ -5,8 +5,6 @@
 package coffee.michel.sebcord.bot.core.commands;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
@@ -28,21 +26,20 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.enterprise.event.ObservesAsync;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
-import coffee.michel.sebcord.bot.core.DCClient;
+import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
+import coffee.michel.sebcord.bot.core.JDADCClient;
 import coffee.michel.sebcord.bot.core.ZipUtils;
-import discord4j.core.object.Embed;
-import discord4j.core.object.Embed.Image;
-import discord4j.core.object.Embed.Type;
-import discord4j.core.object.Embed.Video;
-import discord4j.core.object.entity.Attachment;
-import discord4j.core.object.entity.Guild;
-import discord4j.core.object.entity.Member;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.MessageChannel;
-import discord4j.core.object.util.Snowflake;
+import net.dv8tion.jda.api.entities.EmbedType;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Message.Attachment;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.MessageEmbed.ImageInfo;
+import net.dv8tion.jda.api.entities.MessageEmbed.VideoInfo;
 
 /**
  * @author Jonas Michel
@@ -51,7 +48,7 @@ import discord4j.core.object.util.Snowflake;
 public class BackupCommand extends AbstractCommand {
 
 	@Inject
-	private DCClient client;
+	private JDADCClient client;
 
 	@Override
 	public String getName() {
@@ -69,29 +66,24 @@ public class BackupCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync CommandEvent event) {
+	public void onMessage(@Observes CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
 	protected void handleCommand(CommandEvent event, String text) {
 		Message message = event.getMessage();
-		MessageChannel channel = message.getChannel().block();
+		MessageChannel channel = message.getChannel();
 
 		if (!client.isAdminOrDev(message)) {
-			channel.createMessage("Du kannst dat nich.").subscribe();
+			channel.sendMessage("Du kannst dat nich.").queue();
 			return;
 		}
 
-		// TODO emotes downloaden
-		// TODO zip verpacken
+		Guild guild = message.getGuild();
+		String channelName = channel.getName();
 
-		Guild guild = client.getGuild();
-		Snowflake guildId = guild.getId();
-
-		String channelName = guild.getChannelById(channel.getId()).block().getName();
-
-		File tmpDir = new File(System.getProperty("jboss.server.data.dir"));
+		File tmpDir = ConfigurationPersistenceManager.getDataDir();
 		File backupDir = new File(new File(tmpDir, "sebcord"), "backup");
 		File currentBackupDir = new File(backupDir, channelName + System.currentTimeMillis());
 		if (!currentBackupDir.exists())
@@ -102,80 +94,79 @@ public class BackupCommand extends AbstractCommand {
 		File embeddDir = new File(currentBackupDir, "embedds");
 		embeddDir.mkdirs();
 
-		channel.getMessagesBefore(message.getId()).map(m -> BackupCsvEntry.of(m, guildId)).filter(Objects::nonNull).collectList().subscribe(entries -> {
+		List<Message> completeHistory = new LinkedList<Message>();
+		List<Message> history;
+		do {
+			history = channel.getHistoryBefore(message, 100).complete().getRetrievedHistory();
+			completeHistory.addAll(0, history);
+		} while (history.size() == 100);
 
-			List<String> messageCsv = new LinkedList<>();
-			// header added later because of reverse
-			Set<String> mentionCsv = new LinkedHashSet<>();
-			mentionCsv.add("MentionTag|DisplayName");
-			Set<String> imageURLs = new LinkedHashSet<>();
-			imageURLs.add("AttachmentId|ImagePath");
-			Set<String> embeddCsv = new LinkedHashSet<>();
-			embeddCsv.add("EmbeddName|EmbeddPath");
+		List<BackupCsvEntry> entries = completeHistory.stream().map(m -> BackupCsvEntry.of(m, guild)).filter(Objects::nonNull).collect(Collectors.toList());
+		List<String> messageCsv = new LinkedList<>();
+		// header added later because of reverse
+		Set<String> mentionCsv = new LinkedHashSet<>();
+		mentionCsv.add("MentionTag|DisplayName");
+		Set<String> imageURLs = new LinkedHashSet<>();
+		imageURLs.add("AttachmentId|ImagePath");
+		Set<String> embeddCsv = new LinkedHashSet<>();
+		embeddCsv.add("EmbeddName|EmbeddPath");
 
-			for (BackupCsvEntry entry : entries) {
-				String csv = entry.date.toString();
-				csv += "|" + entry.memberName;
-				csv += "|" + entry.embedUrls.keySet().stream().collect(Collectors.joining(";"));
-				csv += "|" + entry.attachementUrls.keySet().stream().map(Snowflake::asString).collect(Collectors.joining(";"));
-				csv += "|" + entry.content.replaceAll("\n", "<br>");
-				messageCsv.add(csv);
+		for (BackupCsvEntry entry : entries) {
+			String csv = entry.date.toString();
+			csv += "|" + entry.memberName;
+			csv += "|" + entry.embedUrls.keySet().stream().collect(Collectors.joining(";"));
+			csv += "|" + entry.attachementUrls.keySet().stream().map(String::valueOf).collect(Collectors.joining(";"));
+			csv += "|" + entry.content.replaceAll("\n", "<br>");
+			messageCsv.add(csv);
 
-				entry.mentionTagToMemberName.forEach((mention, name) -> {
-					mentionCsv.add(mention + "|" + name);
-				});
+			entry.mentionTagToMemberName.forEach((mention, name) -> {
+				mentionCsv.add(mention + "|" + name);
+			});
 
-				Set<Entry<Snowflake, String>> entrySet = entry.attachementUrls.entrySet();
-				for (Entry<Snowflake, String> e : entrySet) {
-					String url = e.getValue();
-					String extension = getExtension(url);
+			Set<Entry<Long, String>> entrySet = entry.attachementUrls.entrySet();
+			for (Entry<Long, String> e : entrySet) {
+				String url = e.getValue();
+				String extension = getExtension(url);
 
-					String targetFileName = e.getKey().asString() + extension;
-					File targetFile = new File(attachementDir, targetFileName);
-					copyToFile(url, targetFile);
-					entry.attachementUrls.put(e.getKey(), attachementDir.getName() + "/" + targetFileName);
-				}
-				entry.attachementUrls.forEach((id, url) -> {
-					imageURLs.add(id.asLong() + "|" + url);
-				});
-
-				Set<Entry<String, String>> embeddSet = entry.embedUrls.entrySet();
-				for (Entry<String, String> e : embeddSet) {
-					String url = e.getValue();
-					String targetFileName = e.getKey();
-					File targetFile = new File(embeddDir, targetFileName);
-					copyToFile(url, targetFile);
-					entry.embedUrls.put(e.getKey(), embeddDir.getName() + "/" + targetFileName);
-				}
-				entry.embedUrls.forEach((id, url) -> {
-					embeddCsv.add(id + "|" + url);
-				});
+				String targetFileName = e.getKey() + extension;
+				File targetFile = new File(attachementDir, targetFileName);
+				copyToFile(url, targetFile);
+				entry.attachementUrls.put(e.getKey(), attachementDir.getName() + "/" + targetFileName);
 			}
+			entry.attachementUrls.forEach((id, url) -> {
+				imageURLs.add(id + "|" + url);
+			});
 
-			messageCsv.add("Timestamp|Author|Embeds|Attachments|Content");
-			Collections.reverse(messageCsv);
-
-			writeText(messageCsv.stream().collect(Collectors.joining("\n")), new File(currentBackupDir, "messages.csv"));
-			writeText(mentionCsv.stream().collect(Collectors.joining("\n")), new File(currentBackupDir, "mentions.csv"));
-			writeText(imageURLs.stream().collect(Collectors.joining("\n")), new File(currentBackupDir, "attachments.csv"));
-			writeText(embeddCsv.stream().collect(Collectors.joining("\n")), new File(currentBackupDir, "embedds.csv"));
-		}, Throwable::printStackTrace, () -> {
-			// on complete
-			try {
-				File file = new File(backupDir, currentBackupDir.getName() + ".zip");
-				file.createNewFile();
-				ZipUtils.zipIt(currentBackupDir.getAbsolutePath(), file);
-
-				channel.createMessage(spec -> {
-					try {
-						spec.addFile(file.getName(), new FileInputStream(file));
-					} catch (FileNotFoundException e) {}
-				}).subscribe();
-			} catch (IOException e) {
-				e.printStackTrace();
+			Set<Entry<String, String>> embeddSet = entry.embedUrls.entrySet();
+			for (Entry<String, String> e : embeddSet) {
+				String url = e.getValue();
+				String targetFileName = e.getKey();
+				File targetFile = new File(embeddDir, targetFileName);
+				copyToFile(url, targetFile);
+				entry.embedUrls.put(e.getKey(), embeddDir.getName() + "/" + targetFileName);
 			}
-		});
+			entry.embedUrls.forEach((id, url) -> {
+				embeddCsv.add(id + "|" + url);
+			});
+		}
 
+		messageCsv.add("Timestamp|Author|Embeds|Attachments|Content");
+		Collections.reverse(messageCsv);
+
+		writeText(messageCsv.stream().collect(Collectors.joining("\n")), new File(currentBackupDir, "messages.csv"));
+		writeText(mentionCsv.stream().collect(Collectors.joining("\n")), new File(currentBackupDir, "mentions.csv"));
+		writeText(imageURLs.stream().collect(Collectors.joining("\n")), new File(currentBackupDir, "attachments.csv"));
+		writeText(embeddCsv.stream().collect(Collectors.joining("\n")), new File(currentBackupDir, "embedds.csv"));
+
+		try {
+			File file = new File(backupDir, currentBackupDir.getName() + ".zip");
+			file.createNewFile();
+			ZipUtils.zipIt(currentBackupDir.getAbsolutePath(), file);
+
+			channel.sendMessage("Fertitsch!").addFile(file).queue();
+		} catch (IOException e) {
+			// TODO report!
+		}
 	}
 
 	private String getExtension(String url) {
@@ -214,33 +205,25 @@ public class BackupCommand extends AbstractCommand {
 	}
 
 	static class BackupCsvEntry {
-		private String memberName = "";
-		private Instant date;
-		private String content = "";
-		private Map<Snowflake, String> attachementUrls = new HashMap<>();
+		private String              memberName             = "";
+		private Instant             date;
+		private String              content                = "";
+		private Map<Long, String>   attachementUrls        = new HashMap<>();
 		private Map<String, String> mentionTagToMemberName = new HashMap<>();
-		private Map<String, String> embedUrls = new HashMap<>();
+		private Map<String, String> embedUrls              = new HashMap<>();
 
-		static BackupCsvEntry of(Message message, Snowflake guildId) {
+		static BackupCsvEntry of(Message message, Guild guild) {
 			BackupCsvEntry entry = new BackupCsvEntry();
 
-			String memberName = message.getAuthor().map(author -> {
-				try {
-					Member block = author.asMember(guildId).block();
-					return block.getDisplayName();
-				} catch (Throwable t) {
-					return author.getUsername();
-				}
-			}).filter(Objects::nonNull).orElse("Unbekannt");
-			entry.content = message.getContent().orElse("");
-			entry.memberName = memberName;
-			entry.date = message.getTimestamp();
-			entry.attachementUrls = message.getAttachments().stream().collect(Collectors.toMap(Attachment::getId, Attachment::getUrl));
-			entry.mentionTagToMemberName = message.getUserMentions().collectMap(u -> u.getMention(), u -> u.asMember(guildId).map(Member::getDisplayName).block()).block();
-			List<Embed> embeds = message.getEmbeds();
-			loop: for (Embed embed : embeds) {
+			entry.content = message.getContentRaw();
+			entry.memberName = guild.getMember(message.getAuthor()).getNickname();
+			entry.date = message.getTimeCreated().toInstant();
+			entry.attachementUrls = message.getAttachments().stream().collect(Collectors.toMap(Attachment::getIdLong, Attachment::getUrl));
+			entry.mentionTagToMemberName = message.getMentionedUsers().stream().collect(Collectors.toMap(u -> u.getAsMention(), u -> guild.getMember(u).getNickname()));
+			List<MessageEmbed> embeds = message.getEmbeds();
+			loop: for (MessageEmbed embed : embeds) {
 				String url;
-				Type type;
+				EmbedType type;
 				try {
 					type = embed.getType();
 				} catch (Throwable t) {
@@ -249,23 +232,23 @@ public class BackupCommand extends AbstractCommand {
 				switch (type) {
 					case RICH:
 					case IMAGE:
-						Optional<String> map = embed.getImage().map(Image::getUrl);
+						Optional<String> map = Optional.ofNullable(embed.getImage()).map(ImageInfo::getUrl);
 						if (!map.isPresent())
 							continue loop;
 						url = map.get();
-						break;
+					break;
 					case LINK:
-						Optional<String> url2 = embed.getUrl();
-						if (!url2.isPresent())
+						String url2 = Optional.ofNullable(embed.getUrl()).orElse(null);
+						if (url2 == null)
 							continue loop;
-						url = url2.get();
-						break;
+						url = url2;
+					break;
 					case VIDEO:
-						Optional<String> map2 = embed.getVideo().map(Video::getUrl);
+						Optional<String> map2 = Optional.ofNullable(embed.getVideoInfo()).map(VideoInfo::getUrl);
 						if (!map2.isPresent())
 							continue loop;
 						url = map2.get();
-						break;
+					break;
 					default:
 						continue loop;
 				}

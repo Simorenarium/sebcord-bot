@@ -7,9 +7,11 @@ package coffee.michel.sebcord.bot.persistence;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import coffee.michel.sebcord.bot.data.MessageStoreTask.MessageData;
 import one.microstream.persistence.lazy.Lazy;
 
 /**
@@ -19,8 +21,10 @@ import one.microstream.persistence.lazy.Lazy;
 class DataRoot {
 
 	private Map<String, Lazy<Set<String>>> authorziedFeatures = new HashMap<>();
-	private Lazy<Map<Long, Instant>> mutedUsers = Lazy.Reference(new HashMap<>());
-	private Set<String> wordblacklist = new HashSet<>();
+	private Lazy<Map<Long, Instant>>       mutedUsers         = Lazy.Reference(new HashMap<>());
+	private Set<String>                    wordblacklist      = new HashSet<>();
+
+	private Map<Long, Lazy<List<Lazy<MessageData>>>> messages = new HashMap<>();
 
 	private String lastAnnouncedStreamId = "";
 
@@ -52,6 +56,10 @@ class DataRoot {
 
 	public Set<String> getWordblacklist() {
 		return wordblacklist;
+	}
+
+	public Map<Long, Lazy<List<Lazy<MessageData>>>> getMessages() {
+		return messages;
 	}
 
 }

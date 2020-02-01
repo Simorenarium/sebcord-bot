@@ -4,12 +4,16 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import javax.enterprise.event.ObservesAsync;
+import javax.enterprise.event.Observes;
 
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.User;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.TextChannel;
 
 /**
  * @author Jonas Michel
@@ -33,27 +37,31 @@ public class MatchCommandImpl extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@ObservesAsync CommandEvent event) {
+	public void onMessage(@Observes CommandEvent event) {
 		super.onMessage(event);
 	}
 
 	@Override
 	protected void handleCommand(CommandEvent event, String text) {
 		Message message = event.getMessage();
-		message.getUserMentions().map(User::getUsername).map(s -> s.chars().sum())
-			// reverse sort
-			.collectSortedList((i1, i2) -> Integer.compare(i2, i1)).subscribe(sums -> {
-				if (sums.isEmpty() || sums.size() == 1)
-					sendForeverAllone(message);
-				else
-					sendMatchResult(message, calcMatchPercentage(sums));
-			});
+		MessageChannel channel = message.getChannel();
+		channel.sendTyping().complete();
+		List<Integer> effectiveNameSums = message.getMentionedMembers().stream()
+				.map(m -> {
+					OffsetDateTime timeJoined = m.getTimeJoined();
+					return (m.getActivities().toString() + timeJoined.toString() + m.getNickname() + m.getId()).chars().sum();
+				})
+				.sorted((i1, i2) -> Integer.compare(i2, i1))
+				.collect(Collectors.toList());
+
+		if (effectiveNameSums.isEmpty() || effectiveNameSums.size() == 1)
+			sendForeverAllone(message);
+		else
+			sendMatchResult(message, calcMatchPercentage(effectiveNameSums));
 	}
 
 	private void sendForeverAllone(Message message) {
-		message.getChannel().subscribe(ch -> {
-			ch.createMessage("Forever Alone!").subscribe();
-		});
+		sendMessage(message.getTextChannel(), "Forever Alone!");
 	}
 
 	private double calcMatchPercentage(List<Integer> sums) {
@@ -65,9 +73,14 @@ public class MatchCommandImpl extends AbstractCommand {
 	}
 
 	private void sendMatchResult(Message message, double calcMatchPercentage) {
-		message.getChannel().subscribe(ch -> {
-			ch.createMessage("Ihr matched zu " + ((long) Math.floor(calcMatchPercentage * 100)) + "% !!!").subscribe();
-		});
+		sendMessage(message.getTextChannel(), "Ihr matched zu " + ((long) Math.floor(calcMatchPercentage * 100)) + "% !!!");
+	}
+
+	private void sendMessage(TextChannel channel, String message) {
+		channel.sendMessage(new EmbedBuilder().setTitle("❤️❤️❤️ Sebcord Partner Börse ❤️❤️❤️")
+				.setDescription(message)
+				.build())
+				.complete();
 	}
 
 }

@@ -6,36 +6,31 @@
 package coffee.michel.sebcord.endpoint;
 
 import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.Route;
-
-import coffee.michel.sebcord.bot.core.DCClient;
+import coffee.michel.sebcord.bot.core.JDADCClient;
+import net.dv8tion.jda.api.entities.TextChannel;
 
 /**
  * @author Jonas Michel
  *
  */
-@Route("join")
-public class InviteRedirect extends Div implements BeforeEnterObserver {
-	private static final long serialVersionUID = 6414204170203170029L;
-	@Inject
-	private DCClient client;
+@Path("join")
+public class InviteRedirect {
 
-	@Override
-	public void beforeEnter(BeforeEnterEvent event) {
-		String inviteURL = client.getGuild().getSystemChannel().flatMap(sysChannel -> {
-			return sysChannel.createInvite(spec -> {
-				spec.setMaxAge(300);
-				spec.setMaxUses(1);
-				spec.setReason("Invite create by sebcord-bot");
-				spec.setTemporary(false);
-			});
-		}).map(invite -> "https://discord.gg/" + invite.getCode()).block();
-		UI.getCurrent().getPage().setLocation(inviteURL);
+	@Inject
+	private JDADCClient client;
+
+	@GET
+	public Response join() {
+		TextChannel systemChannel = client.getGuild().getSystemChannel();
+		String inviteURL = systemChannel.createInvite().setMaxAge(300).setMaxUses(1).setTemporary(true).reason("Invite created by sebcord-bot").complete().getUrl();
+
+		return Response.status(Status.TEMPORARY_REDIRECT).entity(inviteURL).header(HttpHeaders.LOCATION, inviteURL).build();
 	}
 
 }
