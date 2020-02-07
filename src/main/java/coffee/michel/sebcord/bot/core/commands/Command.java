@@ -4,7 +4,8 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
-import javax.enterprise.event.ObservesAsync;
+import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * @author Jonas Michel
@@ -16,10 +17,12 @@ public interface Command {
 
 	String getName();
 
-	String getCommandRegex();
+	List<String> getVariations();
+
+	Pattern getCommandRegex();
 
 	String getDescription();
 
-	void onMessage(@ObservesAsync CommandEvent event);
+	void onMessage(CommandEvent event);
 
 }

@@ -8,10 +8,10 @@ package coffee.michel.sebcord.bot.core.messages;
 import java.io.File;
 import java.util.List;
 
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
+import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.PrivateChannel;
@@ -21,12 +21,14 @@ import net.dv8tion.jda.api.entities.User;
  * @author Jonas Michel
  *
  */
-public class ForwardMessageToDeveloper {
+@Component
+public class ForwardMessageToDeveloper implements MessageListener {
 
-	@Inject
+	@Autowired
 	private ConfigurationPersistenceManager cpm;
 
-	public void onMessageReceived(@Observes MessageEvent event) {
+	@Override
+	public void onMessage(MessageEvent event) {
 		List<Long> developerIds = cpm.getBotConfig().getDeveloperIds();
 
 		Message message = event.getMessage();
@@ -35,7 +37,8 @@ public class ForwardMessageToDeveloper {
 			if (developerIds.contains(userId))
 				return;
 			forwardToDeveloper(developerIds, message);
-		} else if (message.getMentionedUsers().stream().map(User::getIdLong).anyMatch(id -> cpm.getDiscordApp().getClientId() == id)) {
+		} else if (message.getMentionedUsers().stream().map(User::getIdLong)
+				.anyMatch(id -> cpm.getDiscordApp().getClientId() == id)) {
 			forwardToDeveloper(developerIds, message);
 		}
 	}

@@ -4,6 +4,8 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
+import java.util.List;
+
 import net.dv8tion.jda.api.entities.Message;
 
 /**
@@ -15,22 +17,29 @@ import net.dv8tion.jda.api.entities.Message;
  */
 public class CommandEvent {
 
-	public static final String COMMAND_IDENTIFIER = "o/";
+	public static final String	COMMAND_IDENTIFIER	= "o/";
 
-	private Message message;
+	private final Message		message;
+	private final String		text;
+	private final List<String>	matchedGroups;
 
-	/**
-	 * @return the message
-	 */
+	public CommandEvent(Message message, String text, List<String> matchedGroups) {
+		super();
+		this.message = message;
+		this.text = text;
+		this.matchedGroups = matchedGroups;
+	}
+
 	public Message getMessage() {
 		return message;
 	}
 
-	/**
-	 * @param message the message to set
-	 */
-	public void setMessage(Message message) {
-		this.message = message;
+	public String getText() {
+		return text;
+	}
+
+	public List<String> getMatchedGroups() {
+		return this.matchedGroups;
 	}
 
 }

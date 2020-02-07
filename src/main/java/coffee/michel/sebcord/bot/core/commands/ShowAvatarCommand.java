@@ -4,6 +4,7 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.enterprise.event.Observes;
+import org.springframework.stereotype.Component;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
@@ -22,9 +23,12 @@ import net.dv8tion.jda.api.entities.MessageChannel;
  * @author Jonas Michel
  *
  */
-public class ShowAvatarCommand extends AbstractCommand {
+@Component
+public class ShowAvatarCommand implements Command {
 
-	private static final Map<Double, Long> SCALE;
+	private static final Pattern			pattern	= Pattern.compile("avatar");
+
+	private static final Map<Double, Long>	SCALE;
 	static {
 		Map<Double, Long> scale = new HashMap<Double, Long>();
 		scale.put(0.5, 128L);
@@ -37,12 +41,17 @@ public class ShowAvatarCommand extends AbstractCommand {
 
 	@Override
 	public String getName() {
-		return "Count";
+		return "Avatar";
 	}
 
 	@Override
-	public String getCommandRegex() {
-		return "avatar";
+	public List<String> getVariations() {
+		return Arrays.asList("avatar");
+	}
+
+	@Override
+	public Pattern getCommandRegex() {
+		return pattern;
 	}
 
 	@Override
@@ -51,17 +60,13 @@ public class ShowAvatarCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@Observes CommandEvent event) {
-		super.onMessage(event);
-	}
-
-	@Override
-	protected void handleCommand(CommandEvent event, String text) {
+	public void onMessage(CommandEvent event) {
 		Message message = event.getMessage();
 		MessageChannel channel = message.getChannel();
-
+		var text = event.getText();
 		text = text.replaceAll("<.*>", "");
-		List<String> results = Pattern.compile("\\d*").matcher(text).results().map(MatchResult::group).filter(s -> !s.isEmpty()).collect(Collectors.toList());
+		List<String> results = Pattern.compile("\\d*").matcher(text).results().map(MatchResult::group)
+				.filter(s -> !s.isEmpty()).collect(Collectors.toList());
 
 		long size = 256;
 		if (!results.isEmpty()) {

@@ -5,10 +5,12 @@
 package coffee.michel.sebcord.bot.core.commands;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.enterprise.event.Observes;
+import org.springframework.stereotype.Component;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
@@ -19,7 +21,10 @@ import net.dv8tion.jda.api.entities.TextChannel;
  * @author Jonas Michel
  *
  */
-public class MatchCommandImpl extends AbstractCommand {
+@Component
+public class MatchCommandImpl implements Command {
+
+	private static final Pattern pattern = Pattern.compile("match");
 
 	@Override
 	public String getName() {
@@ -27,8 +32,13 @@ public class MatchCommandImpl extends AbstractCommand {
 	}
 
 	@Override
-	public String getCommandRegex() {
-		return "match";
+	public List<String> getVariations() {
+		return Arrays.asList("match");
+	}
+
+	@Override
+	public Pattern getCommandRegex() {
+		return pattern;
 	}
 
 	@Override
@@ -37,19 +47,15 @@ public class MatchCommandImpl extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@Observes CommandEvent event) {
-		super.onMessage(event);
-	}
-
-	@Override
-	protected void handleCommand(CommandEvent event, String text) {
+	public void onMessage(CommandEvent event) {
 		Message message = event.getMessage();
 		MessageChannel channel = message.getChannel();
 		channel.sendTyping().complete();
 		List<Integer> effectiveNameSums = message.getMentionedMembers().stream()
 				.map(m -> {
 					OffsetDateTime timeJoined = m.getTimeJoined();
-					return (m.getActivities().toString() + timeJoined.toString() + m.getNickname() + m.getId()).chars().sum();
+					return (m.getActivities().toString() + timeJoined.toString() + m.getNickname() + m.getId()).chars()
+							.sum();
 				})
 				.sorted((i1, i2) -> Integer.compare(i2, i1))
 				.collect(Collectors.toList());
@@ -73,7 +79,8 @@ public class MatchCommandImpl extends AbstractCommand {
 	}
 
 	private void sendMatchResult(Message message, double calcMatchPercentage) {
-		sendMessage(message.getTextChannel(), "Ihr matched zu " + ((long) Math.floor(calcMatchPercentage * 100)) + "% !!!");
+		sendMessage(message.getTextChannel(),
+				"Ihr matched zu " + ((long) Math.floor(calcMatchPercentage * 100)) + "% !!!");
 	}
 
 	private void sendMessage(TextChannel channel, String message) {

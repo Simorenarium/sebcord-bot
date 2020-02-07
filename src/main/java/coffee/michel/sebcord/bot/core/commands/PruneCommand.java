@@ -5,13 +5,15 @@
 package coffee.michel.sebcord.bot.core.commands;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import coffee.michel.sebcord.bot.core.JDADCClient;
 import net.dv8tion.jda.api.entities.Message;
@@ -21,12 +23,14 @@ import net.dv8tion.jda.api.entities.MessageChannel;
  * @author Jonas Michel
  *
  */
-public class PruneCommand extends AbstractCommand {
+@Component
+public class PruneCommand implements Command {
 
-	private Map<Long, Instant> lastPrunePerChannel = new ConcurrentHashMap<>();
+	private static final Pattern	pattern				= Pattern.compile("prune|clear|clean");
+	private Map<Long, Instant>		lastPrunePerChannel	= new ConcurrentHashMap<>();
 
-	@Inject
-	private JDADCClient client;
+	@Autowired
+	private JDADCClient				client;
 
 	@Override
 	public String getName() {
@@ -34,8 +38,13 @@ public class PruneCommand extends AbstractCommand {
 	}
 
 	@Override
-	public String getCommandRegex() {
-		return "prune";
+	public List<String> getVariations() {
+		return Arrays.asList("prune", "clear", "clean");
+	}
+
+	@Override
+	public Pattern getCommandRegex() {
+		return pattern;
 	}
 
 	@Override
@@ -44,12 +53,7 @@ public class PruneCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@Observes CommandEvent event) {
-		super.onMessage(event);
-	}
-
-	@Override
-	protected void handleCommand(CommandEvent event, String text) {
+	public void onMessage(CommandEvent event) {
 		Message message = event.getMessage();
 		MessageChannel channel = message.getChannel();
 		if (channel == null)
@@ -64,11 +68,12 @@ public class PruneCommand extends AbstractCommand {
 		Instant lastPrumeTimestamp = lastPrunePerChannel.get(channelId);
 		Instant _30SecondsBefore = message.getTimeCreated().minusSeconds(30).toInstant();
 		if (lastPrumeTimestamp != null && lastPrumeTimestamp.isBefore(_30SecondsBefore)) {
-			channel.sendMessage("Das geht erst wieder in " + ((Instant.now().toEpochMilli() - _30SecondsBefore.toEpochMilli()) / 1000) + " Sekunden.").queue();
+			channel.sendMessage("Das geht erst wieder in "
+					+ ((Instant.now().toEpochMilli() - _30SecondsBefore.toEpochMilli()) / 1000) + " Sekunden.").queue();
 			return;
 		}
 
-		Matcher matcher = Pattern.compile("\\d*").matcher(text);
+		Matcher matcher = Pattern.compile("\\d*").matcher(event.getText());
 		if (!matcher.find()) {
 			channel.sendMessage("Du musst schon eine Anzahl festlegen.").queue();
 			return;

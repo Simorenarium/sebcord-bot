@@ -7,6 +7,7 @@ package coffee.michel.sebcord.bot.core.commands;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,12 +19,14 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 
-import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import coffee.michel.sebcord.Factory;
 import coffee.michel.sebcord.bot.core.JDADCClient;
-import coffee.michel.sebcord.bot.persistence.PersistenceManager;
+import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
+import coffee.michel.sebcord.persistence.PersistenceManager;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -34,18 +37,19 @@ import net.dv8tion.jda.api.entities.Role;
  * @author Jonas Michel
  *
  */
-public class MuteCommand extends AbstractCommand {
+@Component
+public class MuteCommand implements Command {
 
-	private static final Pattern DURATION_PATTERN = Pattern.compile("(\\d+)(m|M|d|D|h|H)");
+	private static final Pattern			DURATION_PATTERN	= Pattern.compile("(\\d+)(m|M|d|D|h|H)");
+	private static final Pattern			pattern				= Pattern.compile("(mute|unmute)");
 
-	@Inject
-	private ConfigurationPersistenceManager cpm = new ConfigurationPersistenceManager();
-	@Inject
-	private PersistenceManager              persistenceMgr;
-	@Inject
-	private JDADCClient                     client;
-	@Inject
-	private ScheduledExecutorService        exe;
+	@Autowired
+	private ConfigurationPersistenceManager	cpm;
+	@Autowired
+	private PersistenceManager				persistenceMgr;
+	@Autowired
+	private JDADCClient						client;
+	private ScheduledExecutorService		exe					= Factory.executor();
 
 	@PostConstruct
 	public void init() {
@@ -53,7 +57,9 @@ public class MuteCommand extends AbstractCommand {
 			final var muteRoleId = cpm.getBotConfig().getMuteRoleId();
 			try {
 				Map<Long, Instant> mutedUsers = persistenceMgr.getMutedUsers();
-				Set<Long> userIdsToUnmute = mutedUsers.entrySet().stream().filter(e -> Instant.now().isAfter(e.getValue())).map(Entry::getKey).collect(Collectors.toSet());
+				Set<Long> userIdsToUnmute = mutedUsers.entrySet().stream()
+						.filter(e -> Instant.now().isAfter(e.getValue())).map(Entry::getKey)
+						.collect(Collectors.toSet());
 
 				Guild guild = client.getGuild();
 				for (Long userId : userIdsToUnmute)
@@ -66,12 +72,17 @@ public class MuteCommand extends AbstractCommand {
 
 	@Override
 	public String getName() {
-		return "Mute/Unmute";
+		return "Mute";
 	}
 
 	@Override
-	public String getCommandRegex() {
-		return "(mute)|(unmute)";
+	public List<String> getVariations() {
+		return Arrays.asList("mute", "unmute");
+	}
+
+	@Override
+	public Pattern getCommandRegex() {
+		return pattern;
 	}
 
 	@Override
@@ -80,12 +91,7 @@ public class MuteCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@Observes CommandEvent event) {
-		super.onMessage(event);
-	}
-
-	@Override
-	protected void handleCommand(CommandEvent event, String text) {
+	public void onMessage(CommandEvent event) {
 		Message message = event.getMessage();
 		MessageChannel channel = message.getChannel();
 
@@ -94,10 +100,10 @@ public class MuteCommand extends AbstractCommand {
 			return;
 		}
 
-		var textWithCommand = message.getContentRaw().replace("o/", "").trim();
+		String actualCommand = event.getMatchedGroups().get(0);
 
-		if (textWithCommand.startsWith("mute"))
-			mute(text, message, channel);
+		if (actualCommand.startsWith("mute"))
+			mute(event.getText(), message, channel);
 		else
 			unmute(message, channel);
 	}
@@ -116,21 +122,21 @@ public class MuteCommand extends AbstractCommand {
 
 		TemporalUnit timeUnit;
 		switch (timeUnitChar) {
-			case 'd':
-			case 'D':
-				timeUnit = ChronoUnit.DAYS;
+		case 'd':
+		case 'D':
+			timeUnit = ChronoUnit.DAYS;
 			break;
-			case 'h':
-			case 'H':
-				timeUnit = ChronoUnit.HOURS;
+		case 'h':
+		case 'H':
+			timeUnit = ChronoUnit.HOURS;
 			break;
-			case 'm':
-			case 'M':
-				timeUnit = ChronoUnit.MINUTES;
+		case 'm':
+		case 'M':
+			timeUnit = ChronoUnit.MINUTES;
 			break;
-			default:
-				channel.sendMessage("Zeitangaben müssen wie folgt angegeben werden: [<nummer><zeiteinheit>]").queue();
-				return;
+		default:
+			channel.sendMessage("Zeitangaben müssen wie folgt angegeben werden: [<nummer><zeiteinheit>]").queue();
+			return;
 		}
 
 		List<Member> mentionedMembers = message.getMentionedMembers();
@@ -141,7 +147,7 @@ public class MuteCommand extends AbstractCommand {
 		final Role muteRole = message.getGuild().getRoleById(cpm.getBotConfig().getMuteRoleId());
 		mentionedMembers.forEach(user -> {
 			persistenceMgr.addMutedUser(user.getIdLong(), Instant.now().plus(amountToAdd, timeUnit));
-			message.getGuild().addRoleToMember(user.getIdLong(), muteRole);
+			message.getGuild().addRoleToMember(user.getIdLong(), muteRole).queue();
 			message.addReaction("✅").queue();
 		});
 	}
@@ -149,13 +155,14 @@ public class MuteCommand extends AbstractCommand {
 	private void unmute(Message message, MessageChannel channel) {
 		List<Member> mentionedMembers = message.getMentionedMembers();
 		if (mentionedMembers.isEmpty()) {
-			channel.sendMessage("Was auch immer, aber um jemanden zu entmuten musst du auch jemanden erwähnen.").queue();
+			channel.sendMessage("Was auch immer, aber um jemanden zu entmuten musst du auch jemanden erwähnen.")
+					.queue();
 			return;
 		}
 		final Role muteRole = message.getGuild().getRoleById(cpm.getBotConfig().getMuteRoleId());
 		mentionedMembers.forEach(user -> {
 			persistenceMgr.removeMutedUser(user.getIdLong());
-			message.getGuild().removeRoleFromMember(user.getIdLong(), muteRole);
+			message.getGuild().removeRoleFromMember(user.getIdLong(), muteRole).queue();
 			message.addReaction("✅").queue();
 		});
 	}

@@ -4,7 +4,11 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
-import javax.enterprise.event.Observes;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import org.springframework.stereotype.Component;
 
 import net.dv8tion.jda.api.entities.MessageChannel;
 
@@ -12,7 +16,10 @@ import net.dv8tion.jda.api.entities.MessageChannel;
  * @author Jonas Michel
  *
  */
-public class CalculateCommand extends AbstractCommand {
+@Component
+public class CalculateCommand implements Command {
+
+	private static final Pattern pattern = Pattern.compile("calc|calculate");
 
 	@Override
 	public String getName() {
@@ -20,8 +27,13 @@ public class CalculateCommand extends AbstractCommand {
 	}
 
 	@Override
-	public String getCommandRegex() {
-		return "calc";
+	public List<String> getVariations() {
+		return Arrays.asList("calc", "calculate");
+	}
+
+	@Override
+	public Pattern getCommandRegex() {
+		return pattern;
 	}
 
 	@Override
@@ -30,18 +42,13 @@ public class CalculateCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@Observes CommandEvent event) {
-		super.onMessage(event);
-	}
-
-	@Override
-	protected void handleCommand(CommandEvent event, String text) {
+	public void onMessage(CommandEvent event) {
 		MessageChannel channel = event.getMessage().getChannel();
 		if (channel == null)
 			return;
 
 		try {
-			channel.sendMessage("Ergebnis: `" + eval(text.trim()) + "`").queue();
+			channel.sendMessage("Ergebnis: `" + eval(event.getText().trim()) + "`").queue();
 		} catch (Throwable t) {
 			channel.sendMessage("Geht nich, da is irgendwas schief gelaufen.").queue();
 		}

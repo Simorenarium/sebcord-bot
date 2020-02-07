@@ -6,9 +6,11 @@
 package coffee.michel.sebcord.bot.core;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 
-import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
@@ -17,11 +19,12 @@ import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
  * @author Jonas Michel
  *
  */
+@Component
 public class GuildEventFilter implements JDAEventFilter {
 
-	@Inject
-	private ConfigurationPersistenceManager cpm;
-	private long                            handledServerId;
+	@Autowired
+	private ConfigurationPersistenceManager	cpm;
+	private long							handledServerId;
 
 	@PostConstruct
 	public void init() {

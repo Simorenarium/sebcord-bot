@@ -11,6 +11,7 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -26,12 +27,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.bot.core.JDADCClient;
 import coffee.michel.sebcord.bot.core.ZipUtils;
+import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.entities.EmbedType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
@@ -45,10 +46,13 @@ import net.dv8tion.jda.api.entities.MessageEmbed.VideoInfo;
  * @author Jonas Michel
  *
  */
-public class BackupCommand extends AbstractCommand {
+@Component
+public class BackupCommand implements Command {
 
-	@Inject
-	private JDADCClient client;
+	private static final Pattern	pattern	= Pattern.compile("backup");
+
+	@Autowired
+	private JDADCClient				client;
 
 	@Override
 	public String getName() {
@@ -56,8 +60,13 @@ public class BackupCommand extends AbstractCommand {
 	}
 
 	@Override
-	public String getCommandRegex() {
-		return "backup";
+	public List<String> getVariations() {
+		return Arrays.asList("backup");
+	}
+
+	@Override
+	public Pattern getCommandRegex() {
+		return pattern;
 	}
 
 	@Override
@@ -66,12 +75,7 @@ public class BackupCommand extends AbstractCommand {
 	}
 
 	@Override
-	public void onMessage(@Observes CommandEvent event) {
-		super.onMessage(event);
-	}
-
-	@Override
-	protected void handleCommand(CommandEvent event, String text) {
+	public void onMessage(CommandEvent event) {
 		Message message = event.getMessage();
 		MessageChannel channel = message.getChannel();
 
@@ -101,7 +105,8 @@ public class BackupCommand extends AbstractCommand {
 			completeHistory.addAll(0, history);
 		} while (history.size() == 100);
 
-		List<BackupCsvEntry> entries = completeHistory.stream().map(m -> BackupCsvEntry.of(m, guild)).filter(Objects::nonNull).collect(Collectors.toList());
+		List<BackupCsvEntry> entries = completeHistory.stream().map(m -> BackupCsvEntry.of(m, guild))
+				.filter(Objects::nonNull).collect(Collectors.toList());
 		List<String> messageCsv = new LinkedList<>();
 		// header added later because of reverse
 		Set<String> mentionCsv = new LinkedHashSet<>();
@@ -205,12 +210,12 @@ public class BackupCommand extends AbstractCommand {
 	}
 
 	static class BackupCsvEntry {
-		private String              memberName             = "";
-		private Instant             date;
-		private String              content                = "";
-		private Map<Long, String>   attachementUrls        = new HashMap<>();
-		private Map<String, String> mentionTagToMemberName = new HashMap<>();
-		private Map<String, String> embedUrls              = new HashMap<>();
+		private String				memberName				= "";
+		private Instant				date;
+		private String				content					= "";
+		private Map<Long, String>	attachementUrls			= new HashMap<>();
+		private Map<String, String>	mentionTagToMemberName	= new HashMap<>();
+		private Map<String, String>	embedUrls				= new HashMap<>();
 
 		static BackupCsvEntry of(Message message, Guild guild) {
 			BackupCsvEntry entry = new BackupCsvEntry();
@@ -218,8 +223,10 @@ public class BackupCommand extends AbstractCommand {
 			entry.content = message.getContentRaw();
 			entry.memberName = guild.getMember(message.getAuthor()).getNickname();
 			entry.date = message.getTimeCreated().toInstant();
-			entry.attachementUrls = message.getAttachments().stream().collect(Collectors.toMap(Attachment::getIdLong, Attachment::getUrl));
-			entry.mentionTagToMemberName = message.getMentionedUsers().stream().collect(Collectors.toMap(u -> u.getAsMention(), u -> guild.getMember(u).getNickname()));
+			entry.attachementUrls = message.getAttachments().stream()
+					.collect(Collectors.toMap(Attachment::getIdLong, Attachment::getUrl));
+			entry.mentionTagToMemberName = message.getMentionedUsers().stream()
+					.collect(Collectors.toMap(u -> u.getAsMention(), u -> guild.getMember(u).getNickname()));
 			List<MessageEmbed> embeds = message.getEmbeds();
 			loop: for (MessageEmbed embed : embeds) {
 				String url;
@@ -230,27 +237,27 @@ public class BackupCommand extends AbstractCommand {
 					continue loop;
 				}
 				switch (type) {
-					case RICH:
-					case IMAGE:
-						Optional<String> map = Optional.ofNullable(embed.getImage()).map(ImageInfo::getUrl);
-						if (!map.isPresent())
-							continue loop;
-						url = map.get();
-					break;
-					case LINK:
-						String url2 = Optional.ofNullable(embed.getUrl()).orElse(null);
-						if (url2 == null)
-							continue loop;
-						url = url2;
-					break;
-					case VIDEO:
-						Optional<String> map2 = Optional.ofNullable(embed.getVideoInfo()).map(VideoInfo::getUrl);
-						if (!map2.isPresent())
-							continue loop;
-						url = map2.get();
-					break;
-					default:
+				case RICH:
+				case IMAGE:
+					Optional<String> map = Optional.ofNullable(embed.getImage()).map(ImageInfo::getUrl);
+					if (!map.isPresent())
 						continue loop;
+					url = map.get();
+					break;
+				case LINK:
+					String url2 = Optional.ofNullable(embed.getUrl()).orElse(null);
+					if (url2 == null)
+						continue loop;
+					url = url2;
+					break;
+				case VIDEO:
+					Optional<String> map2 = Optional.ofNullable(embed.getVideoInfo()).map(VideoInfo::getUrl);
+					if (!map2.isPresent())
+						continue loop;
+					url = map2.get();
+					break;
+				default:
+					continue loop;
 				}
 
 				int indexOfAfterPathStuff = url.indexOf('?');

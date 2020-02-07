@@ -4,47 +4,97 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
-import static coffee.michel.sebcord.bot.core.commands.Command.COMMAND_INDICATOR;
-
+import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import javax.enterprise.event.Observes;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 
 /**
  * @author Jonas Michel
  *
  */
-public class HelpCommand {
+@Component
+public class HelpCommand implements Command {
 
-	@Inject
-	private Instance<Command> commands;
+	private static final Pattern	pattern	= Pattern.compile("(help|hilfe)\\s*(--long)*");
 
-	public void onMessage(@Observes CommandEvent event) {
+	@Autowired
+	private List<Command>			commands;
+
+	@Override
+	public String getName() {
+		return "Hilfe";
+	}
+
+	@Override
+	public List<String> getVariations() {
+		return Arrays.asList("help", "hilfe", "help --long", "hilfe --long");
+	}
+
+	@Override
+	public Pattern getCommandRegex() {
+		return pattern;
+	}
+
+	@Override
+	public String getDescription() {
+		return "Zeigt diese Liste an.";
+	}
+
+	@Override
+	public void onMessage(CommandEvent event) {
 		Message message = event.getMessage();
-		String text = message.getContentDisplay().trim();
-		if (text.startsWith(COMMAND_INDICATOR))
-			text = text.replaceFirst(COMMAND_INDICATOR, "").trim();
-		else
-			return;
-		if (text.startsWith("help"))
-			text = text.replaceFirst("help", "").trim();
-		else
-			return;
+		MessageChannel channel = message.getChannel();
 
-		List<Command> allCommands = StreamSupport.stream(commands.spliterator(), false).sorted((cmd1, cmd2) -> cmd1.getName().compareTo(cmd2.getName())).collect(Collectors.toList());
-		String s = "Hier sind alle Commands:\n\n";
-		s += "1. `help`\n\tZeigt diese Liste an.";
-		int i = 2;
-		for (Command command : allCommands) {
-			s += "\n" + (i++) + ". `" + command.getCommandRegex() + "`\n\t" + command.getDescription();
+		List<Command> allCommands = StreamSupport.stream(commands.spliterator(), false)
+				.sorted((cmd1, cmd2) -> cmd1.getName().compareTo(cmd2.getName()))
+				.collect(Collectors.toList());
+		allCommands = new LinkedList<>(allCommands);
+		allCommands.add(0, this);
+
+		boolean longHelp = event.getMatchedGroups().contains("--long");
+		if (!longHelp) {
+			channel.sendTyping().complete();
+			EmbedBuilder embedBuilder = new EmbedBuilder();
+			embedBuilder = embedBuilder.setTitle("Hilfe");
+			for (int i = 0; i < allCommands.size(); i++) {
+				Command command = allCommands.get(i);
+				embedBuilder.addField(command.getName(),
+						"Variationen: " + command.getVariations().stream().collect(Collectors.joining(", ")), false);
+				embedBuilder.setColor(Color.GREEN);
+			}
+			channel.sendMessage(embedBuilder.build()).queue();
+			return;
 		}
-		final String commandList = s;
-		message.getChannel().sendMessage(commandList).queue();
+		List<MessageEmbed> embeds = new ArrayList<>(allCommands.size());
+		for (int i = 0; i < allCommands.size(); i++) {
+			Command command = allCommands.get(i);
+			EmbedBuilder embedBuilder = new EmbedBuilder();
+			embedBuilder = embedBuilder.setTitle(command.getName());
+			embedBuilder.addField("Command-Variationen",
+					command.getVariations().stream().collect(Collectors.joining(", ")), false);
+			embedBuilder.addField("Beschreibung", command.getDescription(), false);
+			embedBuilder.setColor(Color.GREEN);
+			embeds.add(embedBuilder.build());
+		}
+		channel.sendTyping().queue();
+		for (int i = 0; i < embeds.size(); i++) {
+			MessageEmbed messageEmbed = embeds.get(i);
+			channel.sendMessage(messageEmbed).queue();
+			if (i < (embeds.size() - 2))
+				channel.sendTyping().queue();
+		}
 	}
 }

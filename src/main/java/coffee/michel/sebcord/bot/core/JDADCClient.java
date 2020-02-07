@@ -9,20 +9,24 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.Initialized;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 import javax.security.auth.login.LoginException;
 
-import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
-import coffee.michel.sebcord.bot.configuration.persistence.DiscordApplication;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import coffee.michel.sebcord.Factory;
+import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
+import coffee.michel.sebcord.configuration.persistence.DiscordApplication;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Activity.ActivityType;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 
@@ -30,36 +34,67 @@ import net.dv8tion.jda.api.entities.User;
  * @author Jonas Michel
  *
  */
-@ApplicationScoped
-public class JDADCClient {
+@Component
+@Scope("singleton")
+public class JDADCClient implements ApplicationListener<ApplicationStartedEvent> {
 
-	@Inject
-	private ConfigurationPersistenceManager cpm;
-	@Inject
-	private JDAEventBroadcaster             eventBroadcaster;
-	private JDA                             jda;
-	@Inject
-	private ScheduledExecutorService        exe;
+	@Autowired
+	private ConfigurationPersistenceManager	cpm;
+	@Autowired
+	private JDAEventBroadcaster				eventBroadcaster;
+	private JDA								jda;
+	private ScheduledExecutorService		exe		= Factory.executor();
 
-	private CountDownLatch latch = new CountDownLatch(1);
+	private CountDownLatch					latch	= new CountDownLatch(1);
 
-	@SuppressWarnings("unused")
-	public void init(@Observes @Initialized(ApplicationScoped.class) Object unused) throws LoginException, InterruptedException {
+	@Override
+	public void onApplicationEvent(ApplicationStartedEvent event) {
+		cpm.addSaveListener(() -> {
+			DiscordApplication updatedDcApp = cpm.getDiscordApp();
+			if (!updatedDcApp.isEnabled()) {
+				jda.shutdown();
+				latch = new CountDownLatch(1);
+			}
+
+			initialize(updatedDcApp);
+		});
 		DiscordApplication discordApp = cpm.getDiscordApp();
+		if (!discordApp.isEnabled())
+			return;
 
-		jda = new JDABuilder(discordApp.getToken())
-				.addEventListeners(eventBroadcaster)
-				.setActivity(Activity.of(ActivityType.DEFAULT, "Bin am starten"))
-				.setBulkDeleteSplittingEnabled(false)
-				.setAutoReconnect(true)
-				.setCallbackPool(exe)
-				.setGatewayPool(exe)
-				.build();
+		initialize(discordApp);
+	}
 
-		jda.awaitReady();
-		latch.countDown();
+	private void initialize(DiscordApplication discordApp) {
+		try {
+			jda = new JDABuilder(discordApp.getToken())
+					.addEventListeners(eventBroadcaster)
+					.setActivity(Activity.of(ActivityType.DEFAULT, "Bin am starten"))
+					.setBulkDeleteSplittingEnabled(false)
+					.setAutoReconnect(true)
+					.setCallbackPool(exe)
+					.setGatewayPool(exe)
+					.build();
 
-		jda.getPresence().setActivity(Activity.of(ActivityType.DEFAULT, "Big Sister is watching you"));
+			jda.awaitReady();
+			latch.countDown();
+			jda.getPresence().setActivity(Activity.of(ActivityType.DEFAULT, "Big Sister is watching you"));
+
+		} catch (LoginException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public boolean isAdminOrDev(Member member) {
+		boolean isDev = cpm.getBotConfig().getDeveloperIds().contains(member.getIdLong());
+		if (isDev)
+			return true;
+		var isAdmin = member.getPermissions().contains(Permission.ADMINISTRATOR);
+		if (isAdmin)
+			return true;
+		return false;
 	}
 
 	public boolean isAdminOrDev(Message message) {
@@ -85,6 +120,14 @@ public class JDADCClient {
 
 	public Optional<User> getUserById(Long developerUserId) {
 		return Optional.ofNullable(jda.getUserById(developerUserId));
+	}
+
+	public Optional<Member> getMemberById(String userId) {
+		return Optional.ofNullable(getGuild().getMemberById(userId));
+	}
+
+	public boolean isConfiguration() {
+		return latch.getCount() == 0;
 	}
 
 	public JDA getJda() {

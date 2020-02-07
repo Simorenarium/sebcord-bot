@@ -5,11 +5,11 @@
  */
 package coffee.michel.sebcord.bot.core.messages;
 
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-import coffee.michel.sebcord.bot.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.bot.core.JDADCClient;
+import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
@@ -20,14 +20,16 @@ import net.dv8tion.jda.api.entities.User;
  * @author Jonas Michel
  *
  */
-public class ForwardDeveloperMessages {
+@Component
+public class ForwardDeveloperMessages implements MessageListener {
 
-	@Inject
-	private ConfigurationPersistenceManager cpm;
-	@Inject
-	private JDADCClient                     client;
+	@Autowired
+	private ConfigurationPersistenceManager	cpm;
+	@Autowired
+	private JDADCClient						client;
 
-	public void onMessageReceived(@Observes MessageEvent event) {
+	@Override
+	public void onMessage(MessageEvent event) {
 		Message message = event.getMessage();
 		User author = message.getAuthor();
 		long authorId = author.getIdLong();
@@ -38,11 +40,12 @@ public class ForwardDeveloperMessages {
 			Guild guild = client.getGuild();
 			String expectedChannelName = msgParts[0];
 
-			guild.getChannels().stream().filter(ch -> ch.getType() == ChannelType.TEXT).map(TextChannel.class::cast).forEach(channel -> {
-				String name = channel.getName();
-				if (name.equals(expectedChannelName))
-					channel.sendMessage(msgParts[1]).queue();
-			});
+			guild.getChannels().stream().filter(ch -> ch.getType() == ChannelType.TEXT).map(TextChannel.class::cast)
+					.forEach(channel -> {
+						String name = channel.getName();
+						if (name.equals(expectedChannelName))
+							channel.sendMessage(msgParts[1]).queue();
+					});
 		}
 	}
 
