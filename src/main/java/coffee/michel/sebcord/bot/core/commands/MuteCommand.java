@@ -63,7 +63,7 @@ public class MuteCommand implements Command {
 
 				Guild guild = client.getGuild();
 				for (Long userId : userIdsToUnmute)
-					guild.removeRoleFromMember(userId, guild.getRoleById(muteRoleId));
+					guild.removeRoleFromMember(userId, guild.getRoleById(muteRoleId)).queue();
 			} catch (Throwable t) {
 				t.printStackTrace();
 			}

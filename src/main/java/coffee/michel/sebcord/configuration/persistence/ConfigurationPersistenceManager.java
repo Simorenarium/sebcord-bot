@@ -8,11 +8,18 @@ import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.annotation.PreDestroy;
+
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import one.microstream.storage.types.EmbeddedStorage;
 import one.microstream.storage.types.EmbeddedStorageManager;
+import one.microstream.storage.types.StorageDataConverterCsvConfiguration;
+import one.microstream.storage.types.StorageDataConverterTypeBinaryToCsv;
+import one.microstream.storage.types.StorageEntityTypeConversionFileProvider;
+import one.microstream.storage.types.StorageEntityTypeExportFileProvider;
+import one.microstream.storage.types.StorageLockedFile;
 
 /**
  * @author Jonas Michel
@@ -42,6 +49,38 @@ public class ConfigurationPersistenceManager {
 		}
 
 		droot = (DataRoot) storage.root();
+	}
+
+	@PreDestroy
+	public void deinit() {
+		var connection = storage.createConnection();
+		File exportFile = new File(getConfigurationDir(), "export");
+		exportFile.mkdir();
+		connection.exportTypes(new StorageEntityTypeExportFileProvider.Default(exportFile, "bin"), typeHandler -> true);
+
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		File csvDir = new File(getConfigurationDir(), "csv");
+		StorageDataConverterTypeBinaryToCsv converter = new StorageDataConverterTypeBinaryToCsv.UTF8(
+				StorageDataConverterCsvConfiguration.defaultConfiguration(),
+				new StorageEntityTypeConversionFileProvider.Default(csvDir, "csv"),
+				storage.typeDictionary(),
+				null, // no type name mapping
+				4096, // read buffer size
+				4096 // write buffer size
+		);
+		for (File file : exportFile.listFiles()) {
+			StorageLockedFile storageFile = StorageLockedFile.openLockedFile(file);
+			try {
+				converter.convertDataFile(storageFile);
+			} finally {
+				storageFile.close();
+			}
+		}
 	}
 
 	public void addSaveListener(Runnable listener) {

@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 
+import javax.annotation.PostConstruct;
 import javax.security.auth.login.LoginException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,8 +48,8 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 
 	private CountDownLatch					latch	= new CountDownLatch(1);
 
-	@Override
-	public void onApplicationEvent(ApplicationStartedEvent event) {
+	@PostConstruct
+	public void init() {
 		cpm.addSaveListener(() -> {
 			DiscordApplication updatedDcApp = cpm.getDiscordApp();
 			if (!updatedDcApp.isEnabled()) {
@@ -63,6 +64,11 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 			return;
 
 		initialize(discordApp);
+	}
+
+	@Override
+	public void onApplicationEvent(ApplicationStartedEvent event) {
+		// nothing here, the class just has to be initialized
 	}
 
 	private void initialize(DiscordApplication discordApp) {

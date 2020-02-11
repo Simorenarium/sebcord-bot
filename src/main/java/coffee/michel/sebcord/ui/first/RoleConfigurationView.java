@@ -3,11 +3,15 @@ package coffee.michel.sebcord.ui.first;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.grid.dnd.GridDropLocation;
+import com.vaadin.flow.component.grid.dnd.GridDropMode;
+import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -15,6 +19,7 @@ import com.vaadin.flow.component.listbox.ListBox;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.Route;
 
@@ -22,6 +27,7 @@ import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceM
 import coffee.michel.sebcord.configuration.persistence.SebcordBot;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot.RoleTransition;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot.RoleTransition.RoleAction;
+import coffee.michel.sebcord.ui.components.EditableGrid;
 
 @Route(value = "roles", layout = ConfigurationMainContainer.class)
 public class RoleConfigurationView extends VerticalLayout {
@@ -87,19 +93,71 @@ public class RoleConfigurationView extends VerticalLayout {
 		add(devUserHeader, devUserLayout, devIds);
 
 		H3 roleTransitionHeader = new H3("Rollen Übergänge");
-		VerticalLayout transitionItems = new VerticalLayout();
-		Button button = new Button("Hinzufügen");
-		button.addClickListener(ce -> transitionItems.addComponentAsFirst(new TransitionEntry()));
-		botConfig.getRoleTransitions().forEach(rt -> transitionItems.add(new TransitionEntry(rt)));
-		transitionItems.add(button);
 
-		add(roleTransitionHeader, transitionItems);
+		EditableGrid<RoleTransition> grid = new EditableGrid<>(RoleTransition.class);
+		grid.removeAllColumns();
+
+		Binder<RoleTransition> trBinder = new Binder<>(RoleTransition.class);
+		TextField triggerRoleField = new TextField();
+		trBinder.bind(triggerRoleField, tr -> String.valueOf(tr.getTriggerAction().getRoleId()),
+				(tr, vf) -> tr.getTriggerAction().setRoleId(Long.valueOf(vf)));
+		Checkbox triggerRoleAdd = new Checkbox();
+		trBinder.bind(triggerRoleAdd, "triggerAction.add");
+		TextField actionToApplyRole = new TextField();
+		trBinder.bind(actionToApplyRole, tr -> String.valueOf(tr.getActionToApply().getRoleId()),
+				(tr, vf) -> tr.getActionToApply().setRoleId(Long.valueOf(vf)));
+		Checkbox actionToApplyAdd = new Checkbox();
+		trBinder.bind(actionToApplyAdd, "actionToApply.add");
+		grid.getEditor().setBinder(trBinder);
+		grid.addColumn("triggerAction.roleId").setHeader("Trigger-Rolle")
+				.setEditorComponent(triggerRoleField);
+		grid.addColumn("triggerAction.add").setHeader("Aktion").setEditorComponent(triggerRoleAdd);
+		grid.addColumn("actionToApply.roleId").setHeader("Angewandte Rolle")
+				.setEditorComponent(actionToApplyRole);
+		grid.addColumn("actionToApply.add").setHeader("Aktion").setEditorComponent(actionToApplyAdd);
+		grid.setDropMode(GridDropMode.BETWEEN);
+		grid.addSelectionListener(sel -> sel.getFirstSelectedItem().ifPresent(grid.getEditor()::editItem));
+		grid.getElement().addEventListener("keydown", event -> {
+			Editor<RoleTransition> editor = grid.getEditor();
+			editor.save();
+			editor.closeEditor();
+			grid.getDataProvider().refreshAll();
+		}).setFilter("event.key === 'Enter'");
+		grid.setRowsDraggable(true);
+
+		AtomicReference<RoleTransition> draggedItem = new AtomicReference<>();
+		grid.addDragStartListener(event -> {
+			draggedItem.set(event.getDraggedItems().get(0));
+			grid.setDropMode(GridDropMode.BETWEEN);
+		});
+
+		grid.addDragEndListener(event -> {
+			draggedItem.set(null);
+			grid.setDropMode(null);
+		});
+
+		grid.addDropListener(event -> {
+			var dropOverItem = event.getDropTargetItem().get();
+			if (!dropOverItem.equals(draggedItem.get())) {
+				grid.removeItem(draggedItem.get());
+				int dropIndex = grid.indexOfItem(dropOverItem)
+						+ (event.getDropLocation() == GridDropLocation.BELOW ? 1
+								: 0);
+				grid.addItem(dropIndex, draggedItem.get());
+				grid.getDataProvider().refreshAll();
+			}
+		});
+		botConfig.getRoleTransitions().forEach(grid::addItem);
+
+		Button addItemButton = new Button("Hinzufügen", ce -> grid.addItem(new RoleTransition()));
+		Button removeItemButton = new Button("Entfernen", ce -> grid.getSelectedItems().forEach(grid::removeItem));
+
+		add(roleTransitionHeader, grid, new HorizontalLayout(addItemButton, removeItemButton));
 
 		Button saveButton = new Button("Speichern");
 		saveButton.addClickListener(ce -> {
 			botConfig.getInitialRoles().forEach(persistence::persist);
-			List<RoleTransition> transitions = transitionItems.getChildren().filter(TransitionEntry.class::isInstance)
-					.map(TransitionEntry.class::cast).map(TransitionEntry::get).collect(Collectors.toList());
+			List<RoleTransition> transitions = grid.getItems();
 			botConfig.setRoleTransitions(transitions);
 			botConfig.setMuteRoleId(Optional.ofNullable(muteRoleField.getValue()).filter(s -> !s.isEmpty())
 					.map(Long::valueOf).orElse(0L));

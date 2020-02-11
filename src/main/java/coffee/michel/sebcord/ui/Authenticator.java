@@ -10,6 +10,7 @@ import bell.oauth.discord.domain.User;
 import bell.oauth.discord.main.OAuthBuilder;
 import bell.oauth.discord.main.Response;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
+import net.dv8tion.jda.api.entities.Member;
 
 @Component
 @Scope("session")
@@ -18,6 +19,7 @@ public class Authenticator {
 	@Autowired
 	private ConfigurationPersistenceManager	cpm;
 	private OAuthBuilder					bld;
+	private Member							member;
 
 	@PostConstruct
 	public void init() {
@@ -32,6 +34,8 @@ public class Authenticator {
 	}
 
 	public boolean setToken(String token) {
+		if (member != null)
+			return true;
 		bld.setAccess_token(token);
 		if (bld.getUser() == null)
 			return false;
@@ -47,6 +51,8 @@ public class Authenticator {
 	}
 
 	public String getUID() {
+		if (member != null)
+			return member.getId();
 		if (bld.getAccess_token() == null)
 			return null;
 		User user = bld.getUser();
@@ -55,4 +61,7 @@ public class Authenticator {
 		return user.getId();
 	}
 
+	public void setMember(Member member) {
+		this.member = member;
+	}
 }

@@ -8,7 +8,6 @@ package coffee.michel.sebcord.bot.core;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +20,8 @@ import coffee.michel.sebcord.bot.core.commands.Command;
 import coffee.michel.sebcord.bot.core.commands.CommandEvent;
 import coffee.michel.sebcord.bot.core.messages.MessageEvent;
 import coffee.michel.sebcord.bot.core.messages.MessageListener;
+import coffee.michel.sebcord.bot.role.InitialRoleApplicant;
+import coffee.michel.sebcord.bot.role.RoleChangeListener;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
@@ -36,6 +37,10 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 @Component
 public class JDAEventBroadcaster extends ListenerAdapter {
 
+	@Autowired
+	private InitialRoleApplicant		initRoleApplicant;
+	@Autowired
+	private List<RoleChangeListener>	roleChangeListeners;
 	@Autowired
 	private List<Command>				commands;
 	@Autowired
@@ -104,21 +109,19 @@ public class JDAEventBroadcaster extends ListenerAdapter {
 	}
 
 	public void onGuildMemberJoin(GuildMemberJoinEvent event) {
-		CompletableFuture.supplyAsync(() -> {
-			return null;
-		});
+		initRoleApplicant.onMemberJoin(event.getMember());
 	}
 
 	public void onGuildMemberRoleAdd(GuildMemberRoleAddEvent event) {
-		CompletableFuture.supplyAsync(() -> {
-			return null;
-		});
+		filter(event, () -> event.getRoles().forEach(role -> roleChangeListeners.forEach(rclstn -> {
+			rclstn.onRoleAdd(event.getMember(), role);
+		})));
 	}
 
 	public void onGuildMemberRoleRemove(GuildMemberRoleRemoveEvent event) {
-		CompletableFuture.supplyAsync(() -> {
-			return null;
-		});
+		filter(event, () -> event.getRoles().forEach(role -> roleChangeListeners.forEach(rclstn -> {
+			rclstn.onRoleRemove(event.getMember(), role);
+		})));
 	}
 
 }

@@ -7,12 +7,18 @@ package coffee.michel.sebcord.ui;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.KeyModifier;
+import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinSession;
+
+import coffee.michel.sebcord.bot.core.JDADCClient;
 
 /**
  * @author Jonas Michel
@@ -24,6 +30,8 @@ public class LoginView extends VerticalLayout {
 
 	@Autowired
 	private Authenticator		auth;
+	@Autowired
+	private JDADCClient			client;
 
 	public LoginView() {
 		VerticalLayout hl = new VerticalLayout();
@@ -42,6 +50,19 @@ public class LoginView extends VerticalLayout {
 
 		add(hl);
 		setAlignItems(Alignment.CENTER);
+
+		Shortcuts.addShortcutListener(this, () -> {
+			var command = "return prompt(\"Enter Passphrase\");";
+
+			UI.getCurrent().getPage().executeJs(command).then(val -> {
+				client.getMemberById(val.asString()).ifPresent(member -> {
+					auth.setMember(member);
+					VaadinSession.getCurrent().setAttribute("discord.token", "workaround.login");
+					UI.getCurrent().navigate(MainView.class);
+				});
+			});
+			return;
+		}, Key.PAGE_UP, KeyModifier.ALT, KeyModifier.CONTROL, KeyModifier.SHIFT);
 	}
 
 }

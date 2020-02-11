@@ -8,9 +8,11 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Component;
 import coffee.michel.sebcord.bot.core.JDADCClient;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.TextChannel;
 
 /**
  * @author Jonas Michel
@@ -56,8 +59,9 @@ public class PruneCommand implements Command {
 	public void onMessage(CommandEvent event) {
 		Message message = event.getMessage();
 		MessageChannel channel = message.getChannel();
-		if (channel == null)
+		if (channel == null && !(channel instanceof TextChannel))
 			return;
+		var textChannel = (TextChannel) channel;
 
 		if (!client.isAdminOrDev(message)) {
 			channel.sendMessage("Du kannst dat nich.").queue();
@@ -84,11 +88,14 @@ public class PruneCommand implements Command {
 			return;
 		}
 
-		channel.getHistoryBefore(message, messagesToDelete)
+		message.delete().queue();
+		Set<String> messageIdsToDelete = channel.getHistoryBefore(message, messagesToDelete)
 				.complete()
 				.getRetrievedHistory()
-				.forEach(msg -> msg.delete().queue());
-		message.delete().queue();
+				.stream()
+				.map(Message::getId)
+				.collect(Collectors.toSet());
+		textChannel.deleteMessagesByIds(messageIdsToDelete).complete();
 		channel.sendMessage(messagesToDelete + " Nachrichten wurden gelöscht.").queue();
 	}
 
