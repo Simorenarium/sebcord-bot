@@ -54,6 +54,7 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 			DiscordApplication updatedDcApp = cpm.getDiscordApp();
 			if (!updatedDcApp.isEnabled()) {
 				jda.shutdown();
+				jda.removeEventListener(eventBroadcaster);
 				latch = new CountDownLatch(1);
 			}
 
@@ -85,7 +86,7 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 			jda.awaitReady();
 			latch.countDown();
 			jda.getPresence().setActivity(Activity.of(ActivityType.DEFAULT, "Big Sister is watching you"));
-
+			eventBroadcaster.setSourceJda(jda);
 		} catch (LoginException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
@@ -132,7 +133,7 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 		return Optional.ofNullable(getGuild().getMemberById(userId));
 	}
 
-	public boolean isConfiguration() {
+	public boolean isConfigured() {
 		return latch.getCount() == 0;
 	}
 

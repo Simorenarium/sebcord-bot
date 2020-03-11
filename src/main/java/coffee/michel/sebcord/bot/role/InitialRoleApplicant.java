@@ -8,19 +8,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import coffee.michel.sebcord.bot.core.JDADCClient;
+import coffee.michel.sebcord.bot.event.MemberJoinListener;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 
 @Component
-public class InitialRoleApplicant {
+public class InitialRoleApplicant implements MemberJoinListener {
 
 	@Autowired
 	private JDADCClient						client;
 	@Autowired
 	private ConfigurationPersistenceManager	cpm;
 
-	public void onMemberJoin(Member member) {
+	@Override
+	public void memberJoined(Member member) {
 		List<Long> initialRoles = cpm.getBotConfig().getInitialRoles();
 		Set<Role> rolesToApply = client.getGuild().getRoles().stream().filter(r -> initialRoles.contains(r.getIdLong()))
 				.collect(Collectors.toSet());

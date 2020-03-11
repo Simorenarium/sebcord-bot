@@ -1,28 +1,21 @@
-package coffee.michel.sebcord.ui;
-
-import javax.annotation.PostConstruct;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
+package coffee.michel.sebcord.ui.authentication;
 
 import bell.oauth.discord.domain.User;
 import bell.oauth.discord.main.OAuthBuilder;
 import bell.oauth.discord.main.Response;
+import coffee.michel.sebcord.bot.core.JDADCClient;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.entities.Member;
 
-@Component
-@Scope("session")
 public class Authenticator {
 
-	@Autowired
-	private ConfigurationPersistenceManager	cpm;
-	private OAuthBuilder					bld;
-	private Member							member;
+	private JDADCClient		client;
+	private OAuthBuilder	bld;
+	private Member			member;
 
-	@PostConstruct
-	public void init() {
+	public Authenticator(ConfigurationPersistenceManager cpm, JDADCClient client) {
+		this.client = client;
+
 		bld = new OAuthBuilder(String.valueOf(cpm.getDiscordApp().getClientId()),
 				cpm.getDiscordApp().getClientSecret())
 						.setScopes(new String[] { "identify" })
@@ -63,5 +56,11 @@ public class Authenticator {
 
 	public void setMember(Member member) {
 		this.member = member;
+	}
+
+	public Member getMember() {
+		if (member != null)
+			return member;
+		return client.getMemberById(getUID()).orElse(null);
 	}
 }

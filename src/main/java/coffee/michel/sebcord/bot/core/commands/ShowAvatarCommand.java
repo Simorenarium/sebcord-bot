@@ -84,7 +84,7 @@ public class ShowAvatarCommand implements Command {
 
 		final long detSize = size;
 
-		message.getMentionedUsers().stream().map(u -> u.getAvatarUrl()).forEach(avatar -> {
+		message.getMentionedUsers().stream().map(u -> u.getAvatarUrl()).filter(s -> !s.isBlank()).forEach(avatar -> {
 			channel.sendMessage(new EmbedBuilder().setImage(avatar + "?size=" + detSize).build())
 					.queue();
 		});

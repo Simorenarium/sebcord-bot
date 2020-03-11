@@ -1,8 +1,9 @@
 
-package coffee.michel.sebcord.ui.first;
+package coffee.michel.sebcord.ui.configuration;
 
 import java.util.Optional;
 
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Anchor;
@@ -18,7 +19,10 @@ import com.vaadin.flow.router.Route;
 
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.TwitchConfiguration.TrackedChannel;
+import coffee.michel.sebcord.ui.Permissions;
+import net.dv8tion.jda.api.Permission;
 
+@Permissions({ Permission.ADMINISTRATOR })
 @Route(value = "twitch", layout = ConfigurationMainContainer.class)
 public class TwitchConfigurationView extends VerticalLayout {
 	private static final long				serialVersionUID	= 3329152364488054246L;
@@ -30,10 +34,10 @@ public class TwitchConfigurationView extends VerticalLayout {
 
 	public TwitchConfigurationView() {
 		super();
-		this.initUI();
 	}
 
-	private void initUI() {
+	@Override
+	protected void onAttach(AttachEvent attachEvent) {
 		generalHeader = new H3("Twitch-Application Info");
 		formLayout = new FormLayout();
 		tracketChannelLayout = new FormLayout();

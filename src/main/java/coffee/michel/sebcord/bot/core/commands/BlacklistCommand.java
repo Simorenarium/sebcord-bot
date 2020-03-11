@@ -99,6 +99,7 @@ public class BlacklistCommand implements Command, MessageListener {
 		}
 	}
 
+	@Override
 	public void onMessage(MessageEvent event) {
 		Message message = event.getMessage();
 		String content = message.getContentStripped();

@@ -20,8 +20,9 @@ import coffee.michel.sebcord.bot.core.commands.Command;
 import coffee.michel.sebcord.bot.core.commands.CommandEvent;
 import coffee.michel.sebcord.bot.core.messages.MessageEvent;
 import coffee.michel.sebcord.bot.core.messages.MessageListener;
-import coffee.michel.sebcord.bot.role.InitialRoleApplicant;
+import coffee.michel.sebcord.bot.event.handlers.UserJoinHandler;
 import coffee.michel.sebcord.bot.role.RoleChangeListener;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
@@ -38,20 +39,23 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 public class JDAEventBroadcaster extends ListenerAdapter {
 
 	@Autowired
-	private InitialRoleApplicant		initRoleApplicant;
-	@Autowired
 	private List<RoleChangeListener>	roleChangeListeners;
 	@Autowired
 	private List<Command>				commands;
 	@Autowired
 	private List<MessageListener>		messageListeners;
+	@Autowired
+	private List<UserJoinHandler>		userJoinListeners;
 	private ScheduledExecutorService	exe	= Factory.executor();
 
 	@Autowired
 	private List<JDAEventFilter>		eventFilters;
+	private JDA							jda;
 
 	private void filter(GenericGuildEvent event, Runnable r) {
 		exe.submit(() -> {
+			if (event.getJDA() != jda)
+				return;
 			for (JDAEventFilter filter : eventFilters) {
 				if (!filter.allow(event))
 					return;
@@ -108,20 +112,29 @@ public class JDAEventBroadcaster extends ListenerAdapter {
 		messageListeners.forEach(lstn -> lstn.onMessage(event));
 	}
 
+	@Override
 	public void onGuildMemberJoin(GuildMemberJoinEvent event) {
-		initRoleApplicant.onMemberJoin(event.getMember());
+		filter(event, () -> userJoinListeners.forEach(ujl -> {
+			ujl.memberJoined(event.getMember());
+		}));
 	}
 
+	@Override
 	public void onGuildMemberRoleAdd(GuildMemberRoleAddEvent event) {
 		filter(event, () -> event.getRoles().forEach(role -> roleChangeListeners.forEach(rclstn -> {
 			rclstn.onRoleAdd(event.getMember(), role);
 		})));
 	}
 
+	@Override
 	public void onGuildMemberRoleRemove(GuildMemberRoleRemoveEvent event) {
 		filter(event, () -> event.getRoles().forEach(role -> roleChangeListeners.forEach(rclstn -> {
 			rclstn.onRoleRemove(event.getMember(), role);
 		})));
+	}
+
+	public void setSourceJda(JDA jda) {
+		this.jda = jda;
 	}
 
 }

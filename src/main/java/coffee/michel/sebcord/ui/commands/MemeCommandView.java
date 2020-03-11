@@ -1,10 +1,9 @@
 
-package coffee.michel.sebcord.ui.second;
-
-import javax.annotation.PostConstruct;
+package coffee.michel.sebcord.ui.commands;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.H1;
@@ -18,7 +17,10 @@ import com.vaadin.flow.router.Route;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot.MemeCommand;
+import coffee.michel.sebcord.ui.Permissions;
+import net.dv8tion.jda.api.Permission;
 
+@Permissions({ Permission.ADMINISTRATOR })
 @Route(value = "meme", layout = CommandsContainer.class)
 public class MemeCommandView extends VerticalLayout {
 	private static final long				serialVersionUID	= -2653637655434962690L;
@@ -30,8 +32,8 @@ public class MemeCommandView extends VerticalLayout {
 		super();
 	}
 
-	@PostConstruct
-	public void init() {
+	@Override
+	protected void onAttach(AttachEvent attachEvent) {
 		SebcordBot botConfig = cpm.getBotConfig();
 		MemeCommand _memeCommand = botConfig.getMemeCommand();
 		if (_memeCommand == null) {

@@ -99,15 +99,25 @@ public class ConfigurationPersistenceManager {
 		return droot.twitchConfig;
 	}
 
-	public void persist(Object o) {
+	public void persist(boolean notifyListeners, Object o) {
 		storage.store(o);
-		listeners.forEach(Runnable::run);
+		if (notifyListeners)
+			listeners.forEach(Runnable::run);
+	}
+
+	public void persist(Object o) {
+		persist(true, o);
+	}
+
+	public void persist(boolean notifyListener, Object parent, Object o) {
+		storage.store(o);
+		storage.store(parent);
+		if (notifyListener)
+			listeners.forEach(Runnable::run);
 	}
 
 	public void persist(Object parent, Object o) {
-		storage.store(o);
-		storage.store(parent);
-		listeners.forEach(Runnable::run);
+		persist(true, parent, o);
 	}
 
 	public static File getDataDir() {
@@ -125,6 +135,7 @@ public class ConfigurationPersistenceManager {
 
 		File file = new File(configDir);
 		file.mkdirs();
+		System.out.println("Using dir: " + file.getAbsolutePath());
 		return file;
 	}
 
@@ -143,6 +154,7 @@ public class ConfigurationPersistenceManager {
 
 		File file = new File(configDir);
 		file.mkdirs();
+		System.out.println("Using dir: " + file.getAbsolutePath());
 		return file;
 	}
 }

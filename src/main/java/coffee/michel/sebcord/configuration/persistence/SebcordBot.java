@@ -6,8 +6,12 @@
 package coffee.michel.sebcord.configuration.persistence;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+
+import coffee.michel.sebcord.Pair;
 
 /**
  * @author Jonas Michel
@@ -16,6 +20,32 @@ import java.util.Objects;
 public class SebcordBot {
 
 	public static final String PROPERTY_KEY = "sebcord.bot";
+
+	public static class Conversions {
+		private Map<Pair<String, String>, Double>	conversionFactors	= new HashMap<>();
+		private Map<Pair<String, String>, String>	conversionSubmittee	= new HashMap<>();
+
+		public void putConversion(String sourceUnit, String targetUnit, double factor, String submittee) {
+			getConversionFactors().put(new Pair<>(sourceUnit, targetUnit), factor);
+			getConversionSubmittee().put(new Pair<>(sourceUnit, targetUnit), submittee);
+		}
+
+		public String getSubmittee(String sourceUnit, String targetUnit) {
+			return getConversionSubmittee().get(new Pair<>(sourceUnit, targetUnit));
+		}
+
+		public Double getConversion(String sourceUnit, String targetUnit) {
+			return getConversionFactors().get(new Pair<>(sourceUnit, targetUnit));
+		}
+
+		public Map<Pair<String, String>, Double> getConversionFactors() {
+			return conversionFactors == null ? (conversionFactors = new HashMap<>()) : conversionFactors;
+		}
+
+		public Map<Pair<String, String>, String> getConversionSubmittee() {
+			return conversionSubmittee == null ? (conversionSubmittee = new HashMap<>()) : conversionSubmittee;
+		}
+	}
 
 	public static class MemeCommand {
 		private List<Long>	allowedChannels	= new ArrayList<>();
@@ -145,6 +175,33 @@ public class SebcordBot {
 	private long					twitchStreamerLiveNotificationChannelId	= 0;
 	private long					muteRoleId								= 0;
 	private MemeCommand				memeCommand								= new MemeCommand();
+	private Conversions				conversions								= new Conversions();
+	private Conversions				submittedConversions					= new Conversions();
+	private String					welcomeMessage							= "";
+
+	public String getWelcomeMessage() {
+		return welcomeMessage;
+	}
+
+	public void setWelcomeMessage(String welcomeMessage) {
+		this.welcomeMessage = welcomeMessage;
+	}
+
+	public Conversions getConversions() {
+		return conversions;
+	}
+
+	public void setConversions(Conversions conversions) {
+		this.conversions = conversions;
+	}
+
+	public Conversions getSubmittedConversions() {
+		return submittedConversions == null ? (submittedConversions = new Conversions()) : submittedConversions;
+	}
+
+	public void setSubmittedConversions(Conversions submittedConversions) {
+		this.submittedConversions = submittedConversions;
+	}
 
 	public long getMuteRoleId() {
 		return muteRoleId;

@@ -1,8 +1,9 @@
 
-package coffee.michel.sebcord.ui.first;
+package coffee.michel.sebcord.ui.configuration;
 
 import java.util.Optional;
 
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -16,7 +17,10 @@ import com.vaadin.flow.router.Route;
 
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.DiscordApplication;
+import coffee.michel.sebcord.ui.Permissions;
+import net.dv8tion.jda.api.Permission;
 
+@Permissions({ Permission.ADMINISTRATOR })
 @Route(value = "discord-application", layout = ConfigurationMainContainer.class)
 public class DiscordAppConfiguration extends VerticalLayout {
 	private static final long				serialVersionUID	= -1993565705335683085L;
@@ -28,10 +32,10 @@ public class DiscordAppConfiguration extends VerticalLayout {
 
 	public DiscordAppConfiguration() {
 		super();
-		this.initUI();
 	}
 
-	private void initUI() {
+	@Override
+	protected void onAttach(AttachEvent attachEvent) {
 		header = new H3("Discord-Application Info");
 		formLayout = new FormLayout();
 		saveButton = new Button("Speichern");
