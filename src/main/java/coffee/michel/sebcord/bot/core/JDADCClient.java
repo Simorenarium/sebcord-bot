@@ -39,6 +39,8 @@ import net.dv8tion.jda.api.entities.User;
 @Scope("singleton")
 public class JDADCClient implements ApplicationListener<ApplicationStartedEvent> {
 
+	private static JDADCClient				INSTANCE;
+
 	@Autowired
 	private ConfigurationPersistenceManager	cpm;
 	@Autowired
@@ -47,6 +49,14 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 	private ScheduledExecutorService		exe		= Factory.executor();
 
 	private CountDownLatch					latch	= new CountDownLatch(1);
+
+	public static JDADCClient getINSTANCE() {
+		return INSTANCE;
+	}
+
+	public JDADCClient() {
+		INSTANCE = this;
+	}
 
 	@PostConstruct
 	public void init() {

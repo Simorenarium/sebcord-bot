@@ -7,6 +7,8 @@ import java.util.Objects;
 
 import javax.servlet.http.Cookie;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -17,13 +19,19 @@ import com.vaadin.flow.server.VaadinServiceInitListener;
 import com.vaadin.flow.server.VaadinServletRequest;
 import com.vaadin.flow.server.VaadinSession;
 
-import coffee.michel.sebcord.Application;
+import coffee.michel.sebcord.bot.core.JDADCClient;
+import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.entities.Member;
 
 public class AuthenticationHandler implements VaadinServiceInitListener {
-	private static final long			serialVersionUID		= -451989947374561509L;
+	private static final long				serialVersionUID		= -451989947374561509L;
 
-	private Map<String, Authenticator>	authenticatorBySession	= new HashMap<>();
+	private Map<String, Authenticator>		authenticatorBySession	= new HashMap<>();
+
+	@Autowired
+	private ConfigurationPersistenceManager	cpm						= new ConfigurationPersistenceManager();
+	@Autowired
+	private JDADCClient						jda;
 
 	@Override
 	public void serviceInit(ServiceInitEvent event) {
@@ -53,10 +61,10 @@ public class AuthenticationHandler implements VaadinServiceInitListener {
 
 		synchronized (authenticatorBySession) {
 			authenticator = authenticatorBySession.computeIfAbsent(sessionId,
-					unused -> new Authenticator(Application.cpm, Application.client));
+					unused -> new Authenticator(cpm, jda));
 		}
 
-		if (!Application.cpm.getDiscordApp().isEnabled())
+		if (!cpm.getDiscordApp().isEnabled())
 			return;
 
 		Member alreadySetMember = currentSession.getAttribute(Member.class);

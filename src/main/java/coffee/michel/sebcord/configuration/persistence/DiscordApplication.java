@@ -15,13 +15,13 @@ import java.util.Objects;
  */
 public class DiscordApplication {
 
-	public static final String PROPERTY_KEY = "discord.application";
+	public static final String	PROPERTY_KEY	= "discord.application";
 
-	private long    clientId     = 0;
-	private String  clientSecret = "";
-	private String  token        = "";
-	private String  redirectURL  = "";
-	private boolean enabled      = false;
+	private long				clientId		= 0;
+	private String				clientSecret	= "";
+	private String				token			= "";
+	private String				redirectURL		= "";
+	private boolean				enabled			= false;
 
 	public boolean isEnabled() {
 		return enabled;
@@ -40,6 +40,8 @@ public class DiscordApplication {
 	}
 
 	public String getClientSecret() {
+		if (clientSecret == null)
+			clientSecret = "";
 		return clientSecret;
 	}
 
@@ -48,6 +50,8 @@ public class DiscordApplication {
 	}
 
 	public String getToken() {
+		if (token == null)
+			token = "";
 		return token;
 	}
 
@@ -56,6 +60,8 @@ public class DiscordApplication {
 	}
 
 	public String getRedirectURL() {
+		if (redirectURL == null)
+			redirectURL = "";
 		return redirectURL;
 	}
 
@@ -77,13 +83,15 @@ public class DiscordApplication {
 		if (getClass() != obj.getClass())
 			return false;
 		DiscordApplication other = (DiscordApplication) obj;
-		return clientId == other.clientId && Objects.equals(clientSecret, other.clientSecret) && Objects.equals(redirectURL, other.redirectURL) && Objects.equals(token, other.token);
+		return clientId == other.clientId && Objects.equals(clientSecret, other.clientSecret)
+				&& Objects.equals(redirectURL, other.redirectURL) && Objects.equals(token, other.token);
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("DiscordApplication [clientId=").append(clientId).append(", clientSecret=").append(clientSecret).append(", token=").append(token).append(", redirectURL=").append(redirectURL).append("]");
+		builder.append("DiscordApplication [clientId=").append(clientId).append(", clientSecret=").append(clientSecret)
+				.append(", token=").append(token).append(", redirectURL=").append(redirectURL).append("]");
 		return builder.toString();
 	}
 

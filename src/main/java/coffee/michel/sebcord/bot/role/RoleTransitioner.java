@@ -47,7 +47,7 @@ public class RoleTransitioner implements ApplicationListener<ApplicationStartedE
 		List<RoleTransition> roleTransitions = cpm.getBotConfig().getRoleTransitions();
 		for (RoleTransition roleTransition : roleTransitions) {
 			RoleAction ta = roleTransition.getTriggerAction();
-			if (ta.isAdd() && ta.getRoleId() == role.getIdLong())
+			if (!ta.isAdd() && ta.getRoleId() == role.getIdLong())
 				applyTransition(member, roleTransition);
 		}
 	}
@@ -57,7 +57,7 @@ public class RoleTransitioner implements ApplicationListener<ApplicationStartedE
 		List<RoleTransition> roleTransitions = cpm.getBotConfig().getRoleTransitions();
 		for (RoleTransition roleTransition : roleTransitions) {
 			RoleAction ta = roleTransition.getTriggerAction();
-			if (!ta.isAdd() && ta.getRoleId() == role.getIdLong())
+			if (ta.isAdd() && ta.getRoleId() == role.getIdLong())
 				applyTransition(member, roleTransition);
 		}
 	}

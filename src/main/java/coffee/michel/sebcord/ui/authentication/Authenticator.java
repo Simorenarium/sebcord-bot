@@ -9,12 +9,10 @@ import net.dv8tion.jda.api.entities.Member;
 
 public class Authenticator {
 
-	private JDADCClient		client;
 	private OAuthBuilder	bld;
 	private Member			member;
 
 	public Authenticator(ConfigurationPersistenceManager cpm, JDADCClient client) {
-		this.client = client;
 
 		bld = new OAuthBuilder(String.valueOf(cpm.getDiscordApp().getClientId()),
 				cpm.getDiscordApp().getClientSecret())
@@ -61,6 +59,6 @@ public class Authenticator {
 	public Member getMember() {
 		if (member != null)
 			return member;
-		return client.getMemberById(getUID()).orElse(null);
+		return JDADCClient.getINSTANCE().getMemberById(getUID()).orElse(null);
 	}
 }

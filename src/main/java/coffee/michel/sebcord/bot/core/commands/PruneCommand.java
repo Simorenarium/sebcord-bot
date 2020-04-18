@@ -4,7 +4,10 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -89,14 +92,25 @@ public class PruneCommand implements Command {
 		}
 
 		message.delete().queue();
-		Set<String> messageIdsToDelete = channel.getHistoryBefore(message, messagesToDelete)
+		Set<Message> messageIdsToDelete = channel.getHistoryBefore(message, messagesToDelete)
 				.complete()
 				.getRetrievedHistory()
 				.stream()
-				.map(Message::getId)
 				.collect(Collectors.toSet());
-		textChannel.deleteMessagesByIds(messageIdsToDelete).complete();
-		channel.sendMessage(messagesToDelete + " Nachrichten wurden gelöscht.").queue();
+
+		OffsetDateTime plus = OffsetDateTime.now().minus(2, ChronoUnit.WEEKS).plusHours(1);
+		Set<Message> messagesOlderThatTwoWeeks = messageIdsToDelete.stream()
+				.filter(msg -> plus.isAfter(msg.getTimeCreated())).collect(Collectors.toSet());
+		messageIdsToDelete.removeAll(messagesOlderThatTwoWeeks);
+
+		textChannel.deleteMessagesByIds(messageIdsToDelete.stream().map(Message::getId).collect(Collectors.toSet()))
+				.complete();
+		messagesOlderThatTwoWeeks.parallelStream().forEach(msg -> msg.delete().queue());
+
+		channel.sendMessage(messagesToDelete + " Nachrichten wurden gelöscht.")
+				.complete()
+				.delete()
+				.delay(Duration.ofSeconds(15));
 	}
 
 }

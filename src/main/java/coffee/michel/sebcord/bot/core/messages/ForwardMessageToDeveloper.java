@@ -15,37 +15,31 @@ import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceM
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.PrivateChannel;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 /**
  * @author Jonas Michel
  *
  */
 @Component
-public class ForwardMessageToDeveloper implements MessageListener {
+public class ForwardMessageToDeveloper implements PrivateMessageListener {
 
 	@Autowired
 	private ConfigurationPersistenceManager cpm;
 
 	@Override
-	public void onMessage(MessageEvent event) {
+	public void onEvent(MessageReceivedEvent event) {
 		List<Long> developerIds = cpm.getBotConfig().getDeveloperIds();
 
 		Message message = event.getMessage();
-		if (message.isFromType(ChannelType.PRIVATE)) {
-			final long userId = message.getAuthor().getIdLong();
-			if (developerIds.contains(userId))
-				return;
-			forwardToDeveloper(developerIds, message);
-		} else if (message.getMentionedUsers().stream().map(User::getIdLong)
-				.anyMatch(id -> cpm.getDiscordApp().getClientId() == id)) {
-			forwardToDeveloper(developerIds, message);
-		}
+		if (message.getAuthor().isBot() || message.getChannelType() != ChannelType.PRIVATE)
+			return;
+		forwardToDeveloper(developerIds, message);
 	}
 
 	private void forwardToDeveloper(List<Long> devIds, Message message) {
 		devIds.forEach(developerUserId -> {
-			PrivateChannel pChannel = message.getJDA().getPrivateChannelById(developerUserId);
+			PrivateChannel pChannel = message.getJDA().getUserById(developerUserId).openPrivateChannel().complete();
 			if (pChannel == null)
 				return;
 
@@ -54,10 +48,10 @@ public class ForwardMessageToDeveloper implements MessageListener {
 				try {
 					File file = attc.downloadToFile().get();
 					msgAction.addFile(file);
-
 				} catch (Exception e) {
 				}
 			});
+			msgAction.queue();
 		});
 	}
 }

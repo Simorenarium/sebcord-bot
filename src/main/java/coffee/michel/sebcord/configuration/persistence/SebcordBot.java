@@ -7,6 +7,7 @@ package coffee.michel.sebcord.configuration.persistence;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -220,6 +221,8 @@ public class SebcordBot {
 	}
 
 	public List<Long> getDeveloperIds() {
+		if (developerIds == null)
+			developerIds = new LinkedList<>();
 		return developerIds;
 	}
 

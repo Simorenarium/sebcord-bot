@@ -92,6 +92,8 @@ public class ConfigurationPersistenceManager {
 	}
 
 	public DiscordApplication getDiscordApp() {
+		if (droot.discordApp == null)
+			droot.discordApp = new DiscordApplication();
 		return droot.discordApp;
 	}
 

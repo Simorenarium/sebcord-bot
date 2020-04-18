@@ -37,6 +37,7 @@ build/
 *.log
 node
 node-modules
+node_modules
 target
 bin
 /package-lock.json

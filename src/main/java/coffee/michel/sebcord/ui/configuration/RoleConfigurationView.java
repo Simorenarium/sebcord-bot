@@ -42,6 +42,7 @@ public class RoleConfigurationView extends VerticalLayout {
 
 	@Override
 	protected void onAttach(AttachEvent attachEvent) {
+		removeAll();
 		SebcordBot botConfig = persistence.getBotConfig();
 
 		H3 muteRoleHeader = new H3("Mute Rolle");
@@ -163,6 +164,7 @@ public class RoleConfigurationView extends VerticalLayout {
 			botConfig.setMuteRoleId(Optional.ofNullable(muteRoleField.getValue()).filter(s -> !s.isEmpty())
 					.map(Long::valueOf).orElse(0L));
 			persistence.persist(botConfig);
+			persistence.persist(botConfig, botConfig.getDeveloperIds());
 			persistence.persist(botConfig, botConfig.getInitialRoles());
 			persistence.persist(botConfig, botConfig.getRoleTransitions());
 		});
