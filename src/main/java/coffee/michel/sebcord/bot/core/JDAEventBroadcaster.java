@@ -5,6 +5,7 @@
  */
 package coffee.michel.sebcord.bot.core;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -52,11 +53,11 @@ public class JDAEventBroadcaster extends ListenerAdapter {
 	private List<MessageListener>			messageListeners;
 	@Autowired
 	private List<PrivateMessageListener>	privateMessageListeners;
-	@Autowired
-	private List<ReactionListener>			reactionListeners;
+//	@Autowired
+	private List<ReactionListener>			reactionListeners	= Arrays.asList();
 	@Autowired
 	private List<UserJoinHandler>			userJoinListeners;
-	private ScheduledExecutorService		exe	= Factory.executor();
+	private ScheduledExecutorService		exe					= Factory.executor();
 
 	@Autowired
 	private List<JDAEventFilter>			eventFilters;

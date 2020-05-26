@@ -72,7 +72,7 @@ public class BlacklistCommand implements Command, MessageListener {
 		String text = event.getText();
 		List<String> matchedGroups = event.getMatchedGroups();
 		MessageChannel channel = message.getChannel();
-		if (!client.isAdminOrDev(message)) {
+		if (!matchedGroups.contains("show") && !client.isAdminOrDev(message)) {
 			channel.sendMessage("Das kannst du nicht!").queue();
 			return;
 		}

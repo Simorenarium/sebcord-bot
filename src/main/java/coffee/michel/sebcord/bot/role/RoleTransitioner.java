@@ -26,6 +26,8 @@ public class RoleTransitioner implements ApplicationListener<ApplicationStartedE
 	@Override
 	public void onApplicationEvent(ApplicationStartedEvent event) {
 		Guild guild = client.getGuild();
+		if (guild == null)
+			return;
 		List<RoleTransition> roleTransitions = cpm.getBotConfig().getRoleTransitions();
 
 		guild.getMembers().forEach(member -> {

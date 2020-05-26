@@ -1,10 +1,13 @@
 package coffee.michel.sebcord.bot.core.commands;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -22,9 +25,10 @@ import net.dv8tion.jda.api.EmbedBuilder;
 @Component
 public class MemeCommand implements Command {
 
-	private static final Pattern			pattern			= Pattern.compile("meme");
+	private static final Pattern			pattern			= Pattern.compile("meme\\s*(.*)|dankmeme");
 
 	private Map<Long, Instant>				lastExecByUser	= new HashMap<>();
+	private Map<String, LocalDateTime>		previousMemes	= new HashMap<>();
 
 	@Autowired
 	private ConfigurationPersistenceManager	cpm				= new ConfigurationPersistenceManager();
@@ -36,7 +40,7 @@ public class MemeCommand implements Command {
 
 	@Override
 	public List<String> getVariations() {
-		return Arrays.asList("meme");
+		return Arrays.asList("meme", "dankmeme", "meme <subreddit>");
 	}
 
 	@Override
@@ -46,7 +50,7 @@ public class MemeCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Liefert ein zufälliges meme von Reddit.\nKann jeder User alle 5 Minuten ausführen.";
+		return "Liefert ein zufälliges meme von Reddit. Wenn der Bot mit einer Uhr reagiert, müsst ihr warten.\n\to/meme\n\tdankmeme\n\to/meme <subreddit>";
 	}
 
 	@Override
@@ -62,6 +66,17 @@ public class MemeCommand implements Command {
 			return;
 		}
 
+		List<String> groups = event.getMatchedGroups();
+		String apiUrl = "https://meme-api.herokuapp.com/gimme";
+
+		if (groups.stream().filter(str -> str.startsWith("dankmeme")).findAny().isPresent()) {
+			apiUrl += "/dankmemes";
+		} else if (groups.size() == 2) {
+			apiUrl += "/" + groups.get(1).trim();
+		}
+
+		System.out.println("Meme requested: " + apiUrl);
+
 		var userId = message.getAuthor().getIdLong();
 
 		Instant lastActivateTime = lastExecByUser.get(userId);
@@ -73,24 +88,39 @@ public class MemeCommand implements Command {
 			lastExecByUser.put(userId, Instant.now());
 		}
 
-		channel.sendTyping().queue();
+		String url = null;
+		JsonObject fromJson;
+		do {
+			channel.sendTyping().queue();
 
-		var response = Unirest.get("https://meme-api.herokuapp.com/gimme").asBytes();
-		if (response.getStatus() != 200) {
-			channel.sendMessage("Geht grade nicht ¯\\_(ツ)_/¯. Versuchs später.").queue();
-			return;
-		}
-		var body = new String(response.getBody());
-		JsonObject fromJson = new Gson().fromJson(body, JsonObject.class);
-		// play as if this could never be null
-		Optional.ofNullable(fromJson.get("url")).map(el -> el.getAsString()).ifPresent(url -> {
-			var postUrl = Optional.ofNullable(fromJson.get("postLink")).map(JsonElement::getAsString).orElse(null);
+			var response = Unirest.get(apiUrl).asBytes();
+			if (response.getStatus() != 200) {
+				channel.sendMessage("Geht grade nicht ¯\\_(ツ)_/¯. Versuchs später.").queue();
+				return;
+			}
+			var body = new String(response.getBody());
+			fromJson = new Gson().fromJson(body, JsonObject.class);
+			// play as if this could never be null
+			url = Optional.ofNullable(fromJson.get("url")).map(el -> el.getAsString()).get();
+		} while (checkIfPosted(url));
+		var postUrl = Optional.ofNullable(fromJson.get("postLink")).map(JsonElement::getAsString).orElse(null);
 
-			EmbedBuilder setImage = new EmbedBuilder().setImage(url);
-			if (postUrl != null)
-				setImage = setImage.setFooter(url);
-			channel.sendMessage(setImage.build()).queue();
-		});
+		EmbedBuilder setImage = new EmbedBuilder().setImage(url);
+		if (postUrl != null)
+			setImage = setImage.setFooter(url);
+		channel.sendMessage(setImage.build()).queue();
 	}
 
+	private boolean checkIfPosted(String url) {
+		Iterator<Entry<String, LocalDateTime>> iter = previousMemes.entrySet().iterator();
+		LocalDateTime threeDaysPrior = LocalDateTime.now().minusDays(3);
+		while (iter.hasNext()) {
+			Entry<String, LocalDateTime> next = iter.next();
+			if (next.getValue().isBefore(threeDaysPrior))
+				iter.remove();
+			else if (next.getKey().equals(url))
+				return true;
+		}
+		return false;
+	}
 }
