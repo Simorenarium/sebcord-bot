@@ -2,7 +2,10 @@
 package coffee.michel.sebcord.ui.configuration;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
@@ -22,11 +25,15 @@ import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.Route;
 
 import ch.carnet.kasparscherrer.VerticalScrollLayout;
+import coffee.michel.sebcord.bot.core.JDADCClient;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.TwitchConfiguration.TrackedChannel;
 import coffee.michel.sebcord.ui.api.ParentContainer;
 import coffee.michel.sebcord.ui.api.SebcordUIPage.BaseUIPage;
+import coffee.michel.sebcord.ui.components.ChannelComboBox;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.GuildChannel;
+import net.dv8tion.jda.api.entities.TextChannel;
 
 @Route(value = "twitch", layout = ConfigurationMainContainer.class)
 public class TwitchConfigurationView extends VerticalScrollLayout {
@@ -53,6 +60,8 @@ public class TwitchConfigurationView extends VerticalScrollLayout {
 
 	@Autowired
 	private ConfigurationPersistenceManager	persistence;
+	@Autowired
+	private JDADCClient						client;
 
 	@PostConstruct
 	public void init() {
@@ -67,6 +76,9 @@ public class TwitchConfigurationView extends VerticalScrollLayout {
 		forwardToApplicationOverview.getStyle().set("padding-left", "5px");
 		generalHeader.add(forwardToApplicationOverview);
 
+		List<GuildChannel> textChannels = client.getGuild().getChannels().stream()
+				.filter(ch -> ch instanceof TextChannel).collect(Collectors.toList());
+
 		var twitchConfig = persistence.getTwitchConfig();
 		var botConfiguration = persistence.getBotConfig();
 
@@ -74,9 +86,11 @@ public class TwitchConfigurationView extends VerticalScrollLayout {
 		clientIdField.setValue(twitchConfig.getClientId());
 		TextField clientSecretField = new TextField();
 		clientSecretField.setValue(twitchConfig.getClientSecret());
-		TextField liveNotificationChannelField = new TextField();
+		ChannelComboBox liveNotificationChannelField = new ChannelComboBox(textChannels);
 		liveNotificationChannelField
-				.setValue(String.valueOf(botConfiguration.getTwitchStreamerLiveNotificationChannelId()));
+				.setValue(textChannels.stream()
+						.filter(ch -> ch.getIdLong() == botConfiguration.getTwitchStreamerLiveNotificationChannelId())
+						.findAny().orElse(null));
 
 		formLayout.addFormItem(clientIdField, "Client-ID");
 		formLayout.addFormItem(clientSecretField, "Client-Secret");
@@ -89,7 +103,7 @@ public class TwitchConfigurationView extends VerticalScrollLayout {
 		tracketChannelLayout.addFormItem(urlField, "URL");
 
 		ListBox<TrackedChannel> lb = new ListBox<>();
-		lb.setRenderer(new TextRenderer<>(bean -> bean.getName()));
+		lb.setRenderer(new TextRenderer<>(bean -> bean.getName() + " (" + bean.getUrl() + " )"));
 		lb.setItems(twitchConfig.getTrackedChannels());
 
 		HorizontalLayout addAndRemove = new HorizontalLayout();
@@ -117,8 +131,8 @@ public class TwitchConfigurationView extends VerticalScrollLayout {
 			twitchConfig.setClientId(clientIdField.getValue());
 			twitchConfig.setClientSecret(clientSecretField.getValue());
 			botConfiguration.setTwitchStreamerLiveNotificationChannelId(
-					Optional.ofNullable(liveNotificationChannelField.getValue()).filter(s -> !s.isEmpty())
-							.map(Long::valueOf).orElse(0L));
+					Optional.ofNullable(liveNotificationChannelField.getValue()).filter(Objects::nonNull)
+							.map(GuildChannel::getIdLong).orElse(0L));
 
 			twitchConfig.getTrackedChannels().forEach(persistence::persist);
 			persistence.persist(twitchConfig, twitchConfig.getTrackedChannels());

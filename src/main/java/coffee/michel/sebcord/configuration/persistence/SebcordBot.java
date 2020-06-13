@@ -49,10 +49,17 @@ public class SebcordBot {
 	}
 
 	public static class MemeCommand {
-		private List<Long>	allowedChannels	= new ArrayList<>();
+		private List<Long>		allowedChannels		= new ArrayList<>();
+		private List<String>	blockedSubreddits	= new ArrayList<>();
 		// 5 minutes
-		private long		pauseTime		= 300000;
-		private boolean		active;
+		private long			pauseTime			= 300000;
+		private boolean			active;
+
+		public List<String> getBlockedSubreddits() {
+			if (blockedSubreddits == null)
+				blockedSubreddits = new ArrayList<>();
+			return blockedSubreddits;
+		}
 
 		public List<Long> getAllowedChannels() {
 			return allowedChannels;

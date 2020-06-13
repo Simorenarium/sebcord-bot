@@ -72,7 +72,12 @@ public class MemeCommand implements Command {
 		if (groups.stream().filter(str -> str.startsWith("dankmeme")).findAny().isPresent()) {
 			apiUrl += "/dankmemes";
 		} else if (groups.size() == 2) {
-			apiUrl += "/" + groups.get(1).trim();
+			String subReddit = groups.get(1).trim();
+			if (cpm.getBotConfig().getMemeCommand().getBlockedSubreddits().contains(subReddit.toLowerCase())) {
+				channel.sendMessage("Der Subreddit " + subReddit + " is blockiert.").queue();
+				return;
+			}
+			apiUrl += "/" + subReddit;
 		}
 
 		System.out.println("Meme requested: " + apiUrl);

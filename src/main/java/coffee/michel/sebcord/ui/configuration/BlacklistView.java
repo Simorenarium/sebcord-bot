@@ -58,10 +58,11 @@ public class BlacklistView extends VerticalScrollLayout {
 		Button save = new Button("Speichern");
 		save.addClickListener(ce -> {
 			String orElse = Optional.ofNullable(ta.getValue()).orElse("");
-			String[] badWords = orElse.split(",");
+			String[] badWords = orElse.split("\\s*,\\s*");
 
 			blacklistedWords.forEach(persistence::removeWordFromBlacklist);
-			Arrays.stream(badWords).map(String::trim).filter(s -> s.isEmpty()).forEach(persistence::addWordToBlacklist);
+			Arrays.stream(badWords).map(String::trim).filter(s -> !s.isEmpty())
+					.forEach(persistence::addWordToBlacklist);
 		});
 		add(save);
 	}

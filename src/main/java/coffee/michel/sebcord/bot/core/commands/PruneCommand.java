@@ -96,6 +96,7 @@ public class PruneCommand implements Command {
 				.complete()
 				.getRetrievedHistory()
 				.stream()
+				.filter(msg -> !msg.isPinned())
 				.collect(Collectors.toSet());
 
 		OffsetDateTime plus = OffsetDateTime.now().minus(2, ChronoUnit.WEEKS).plusHours(1);
