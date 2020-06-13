@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>coffee.michel.sebcord</groupId>
 	<artifactId>coffee.michel.sebcord</artifactId>
-	<version>3.0.0-SNAPSHOT</version>
+	<version>3.0.1-SNAPSHOT</version>
 	<name>coffee.michel.sebcord</name>
 	<description>Sebcord</description>
 

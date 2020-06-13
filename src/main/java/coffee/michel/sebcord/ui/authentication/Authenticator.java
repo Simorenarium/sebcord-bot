@@ -26,7 +26,7 @@ public class Authenticator {
 		bld = new OAuthBuilder(String.valueOf(cpm.getDiscordApp().getClientId()),
 				cpm.getDiscordApp().getClientSecret())
 						.setScopes(new String[] { "identify" })
-						.setRedirectURI("http://localhost:8080/login");
+						.setRedirectURI(cpm.getDiscordApp().getRedirectURL());
 	}
 
 	public String getAuthURL() {

@@ -4,17 +4,14 @@ import org.springframework.stereotype.Component;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.server.ServiceException;
 import com.vaadin.flow.server.ServiceInitEvent;
-import com.vaadin.flow.server.SessionInitEvent;
-import com.vaadin.flow.server.SessionInitListener;
 import com.vaadin.flow.server.VaadinServiceInitListener;
 
 import coffee.michel.sebcord.ui.authentication.LoginView;
 import coffee.michel.sebcord.ui.authentication.SecurityUtils;
 
 @Component
-public class ConfigureUIInitListener implements VaadinServiceInitListener, SessionInitListener {
+public class ConfigureUIInitListener implements VaadinServiceInitListener {
 	private static final long serialVersionUID = -5647968344335818438L;
 
 	@Override
@@ -35,13 +32,6 @@ public class ConfigureUIInitListener implements VaadinServiceInitListener, Sessi
 				&& !SecurityUtils.isUserLoggedIn()) {
 			event.rerouteTo(LoginView.class);
 		}
-	}
-
-	@Override
-	public void sessionInit(SessionInitEvent event) throws ServiceException {
-		// This will bind a ctx to a vaadin session, otherwise the user won't be
-		// preserved
-//		SecurityContextHolder.setContext(VaddinSessionSecurityContextHolder.getCtx(event.getSession()));
 	}
 
 }
