@@ -7,12 +7,11 @@ import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
-@Component
+//@Component
 public class MusicCommand implements Command {
 
 	private static final Pattern											pattern	= Pattern

@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -39,7 +38,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
  * @author Jonas Michel
  *
  */
-@Component
+//@Component
 @Scope("singleton")
 public class SebcordTwitchClient implements ApplicationListener<ApplicationStartedEvent> {
 

@@ -1,5 +1,5 @@
 
-package coffee.michel.sebcord.ui.configuration;
+package coffee.michel.sebcord.ui.commands;
 
 import java.util.Collection;
 import java.util.Set;
@@ -24,22 +24,32 @@ import coffee.michel.sebcord.ui.api.ParentContainer;
 import coffee.michel.sebcord.ui.api.SebcordUIPage;
 
 @ParentLayout(MainContainer.class)
-@RoutePrefix("configuration")
-public class ConfigurationMainContainer extends HorizontalLayout implements RouterLayout {
-	private static final long	serialVersionUID	= -4294741955103500853L;
+@RoutePrefix("commands")
+public class CommandContainer extends HorizontalLayout implements RouterLayout {
+	private static final long	serialVersionUID	= -6143585657824753212L;
 
 	@Autowired
-	@ParentContainer("ConfigurationMainContainer")
+	@ParentContainer("CommandContainer")
 	private Set<SebcordUIPage>	pages;
+
+	public CommandContainer() {
+		super();
+	}
 
 	@PostConstruct
 	public void init() {
 		setHeight("100%");
 		var navMenu = new VerticalLayout();
 
+		ContainerHelper.ifAuthorized(() -> {
+			Collection<? extends GrantedAuthority> authorities = SecurityContextHolder.getContext().getAuthentication()
+					.getAuthorities();
+			pages.stream().sorted().forEach(page -> ContainerHelper.addMenuItem(navMenu, page, authorities));
+		});
+
+		setSpacing(false);
 		setClassName("my-category");
 		setMinHeight("0");
-		setSpacing(false);
 		setDefaultVerticalComponentAlignment(FlexComponent.Alignment.STRETCH);
 		navMenu.setClassName("my-menu");
 		navMenu.setMinHeight("0");
@@ -51,20 +61,13 @@ public class ConfigurationMainContainer extends HorizontalLayout implements Rout
 		navMenu.getStyle().set("overflow-x", "hidden");
 		navMenu.getStyle().set("overflow-y", "auto");
 
-		ContainerHelper.ifAuthorized(() -> {
-			Collection<? extends GrantedAuthority> authorities = SecurityContextHolder.getContext().getAuthentication()
-					.getAuthorities();
-			pages.stream().sorted().forEach(page -> ContainerHelper.addMenuItem(navMenu, page, authorities));
-		});
-
-		navMenu.setSizeUndefined();
 		removeAll();
 		add(navMenu);
 	}
 
 	@Override
-	public void showRouterLayoutContent(final HasElement content) {
+	public void showRouterLayoutContent(HasElement content) {
 		RouterLayout.super.showRouterLayoutContent(content);
-		this.getElement().appendChild(content.getElement());
 	}
+
 }

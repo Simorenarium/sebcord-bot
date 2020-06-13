@@ -1,9 +1,14 @@
 
 package coffee.michel.sebcord.ui.configuration;
 
+import java.util.Collection;
 import java.util.Optional;
 
-import com.vaadin.flow.component.AttachEvent;
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Anchor;
@@ -12,32 +17,45 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.listbox.ListBox;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.Route;
 
+import ch.carnet.kasparscherrer.VerticalScrollLayout;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.TwitchConfiguration.TrackedChannel;
-import coffee.michel.sebcord.ui.Permissions;
+import coffee.michel.sebcord.ui.api.ParentContainer;
+import coffee.michel.sebcord.ui.api.SebcordUIPage.BaseUIPage;
 import net.dv8tion.jda.api.Permission;
 
-@Permissions({ Permission.ADMINISTRATOR })
 @Route(value = "twitch", layout = ConfigurationMainContainer.class)
-public class TwitchConfigurationView extends VerticalLayout {
-	private static final long				serialVersionUID	= 3329152364488054246L;
+public class TwitchConfigurationView extends VerticalScrollLayout {
+	private static final long serialVersionUID = 3329152364488054246L;
+
+	@Component
+	@ParentContainer("ConfigurationMainContainer")
+	public static class TwitchConfigurationpage extends BaseUIPage {
+
+		public TwitchConfigurationpage() {
+			super(1, "Twitch-App", TwitchConfigurationView.class);
+		}
+
+		@Override
+		public boolean matchesPermissions(Collection<String> permissions) {
+			return permissions.contains(Permission.ADMINISTRATOR.toString());
+		}
+
+	}
 
 	private H3								generalHeader, liveNotificationHeader;
 	private FormLayout						formLayout, tracketChannelLayout;
 	private Button							saveButton;
-	private ConfigurationPersistenceManager	persistence			= new ConfigurationPersistenceManager();
 
-	public TwitchConfigurationView() {
-		super();
-	}
+	@Autowired
+	private ConfigurationPersistenceManager	persistence;
 
-	@Override
-	protected void onAttach(AttachEvent attachEvent) {
+	@PostConstruct
+	public void init() {
 		generalHeader = new H3("Twitch-Application Info");
 		formLayout = new FormLayout();
 		tracketChannelLayout = new FormLayout();
@@ -63,6 +81,7 @@ public class TwitchConfigurationView extends VerticalLayout {
 		formLayout.addFormItem(clientIdField, "Client-ID");
 		formLayout.addFormItem(clientSecretField, "Client-Secret");
 		formLayout.addFormItem(liveNotificationChannelField, "Kanal für Benachrichtigungen");
+		formLayout.setWidthFull();
 
 		TextField nameField = new TextField();
 		TextField urlField = new TextField();
@@ -106,14 +125,11 @@ public class TwitchConfigurationView extends VerticalLayout {
 			persistence.persist(botConfiguration);
 		});
 
-		setMinHeight("0");
 		getStyle().set("overflow-x", "hidden");
 		getStyle().set("overflow-y", "auto");
 
-		formLayout.setSizeFull();
 		add(generalHeader, formLayout, liveNotificationHeader, tracketChannelLayout, addAndRemove, lb, saveButton);
 		setWidthFull();
-		setHeight(null);
 	}
 
 }

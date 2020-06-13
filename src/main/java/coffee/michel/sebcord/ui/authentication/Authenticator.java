@@ -1,5 +1,10 @@
 package coffee.michel.sebcord.ui.authentication;
 
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import bell.oauth.discord.domain.User;
 import bell.oauth.discord.main.OAuthBuilder;
 import bell.oauth.discord.main.Response;
@@ -7,17 +12,21 @@ import coffee.michel.sebcord.bot.core.JDADCClient;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.entities.Member;
 
+@Component
 public class Authenticator {
 
-	private OAuthBuilder	bld;
-	private Member			member;
+	private OAuthBuilder					bld;
+	private Member							member;
 
-	public Authenticator(ConfigurationPersistenceManager cpm, JDADCClient client) {
+	@Autowired
+	private ConfigurationPersistenceManager	cpm;
 
+	@PostConstruct
+	public void init() {
 		bld = new OAuthBuilder(String.valueOf(cpm.getDiscordApp().getClientId()),
 				cpm.getDiscordApp().getClientSecret())
 						.setScopes(new String[] { "identify" })
-						.setRedirectURI(cpm.getDiscordApp().getRedirectURL());
+						.setRedirectURI("http://localhost:8080/login");
 	}
 
 	public String getAuthURL() {
@@ -59,6 +68,6 @@ public class Authenticator {
 	public Member getMember() {
 		if (member != null)
 			return member;
-		return JDADCClient.getINSTANCE().getMemberById(getUID()).orElse(null);
+		return member = JDADCClient.getINSTANCE().getMemberById(getUID()).orElse(null);
 	}
 }

@@ -1,30 +1,44 @@
 
 package coffee.michel.sebcord.ui;
 
-import com.vaadin.flow.component.AttachEvent;
+import javax.annotation.PostConstruct;
+
+import org.springframework.stereotype.Component;
+
 import com.vaadin.flow.component.html.Label;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.Route;
 
-@Route(value = "", layout = MainContainer.class)
-public class MainView extends VerticalLayout {
-	private static final long	serialVersionUID	= -4818883590469559192L;
-	private Label				lblContent;
+import ch.carnet.kasparscherrer.VerticalScrollLayout;
+import coffee.michel.sebcord.ui.api.ParentContainer;
+import coffee.michel.sebcord.ui.api.SebcordUIPage.BaseUIPage;
 
-	public MainView() {
-		super();
+@Route(value = "", layout = MainContainer.class)
+public class MainView extends VerticalScrollLayout {
+	private static final long serialVersionUID = -4818883590469559192L;
+
+	@Component
+	@ParentContainer("MainContainer")
+	public static class MainPage extends BaseUIPage {
+
+		public MainPage() {
+			super(-1, "", VaadinIcon.HOME, MainView.class);
+		}
+
 	}
 
-	@Override
-	protected void onAttach(AttachEvent attachEvent) {
-		this.lblContent = new Label();
+	@PostConstruct
+	public void init() {
+		setHeight("100%");
 
-		this.lblContent.setText("Sebcord-Bot");
-		this.lblContent.getStyle().set("font-size", "5em");
+		Label lblContent = new Label();
 
-		this.lblContent.setSizeUndefined();
-		this.add(this.lblContent);
-		this.setSizeFull();
+		lblContent.setText("Sebcord-Bot");
+		lblContent.getStyle().set("font-size", "5em");
+
+		lblContent.setSizeUndefined();
+		add(lblContent);
+		setSizeFull();
 	}
 
 }

@@ -1,33 +1,47 @@
 package coffee.michel.sebcord.ui.configuration;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Collection;
 
-import com.vaadin.flow.component.AttachEvent;
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.Route;
 
+import ch.carnet.kasparscherrer.VerticalScrollLayout;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
-import coffee.michel.sebcord.ui.Permissions;
+import coffee.michel.sebcord.ui.api.ParentContainer;
+import coffee.michel.sebcord.ui.api.SebcordUIPage.BaseUIPage;
 import net.dv8tion.jda.api.Permission;
 
-@Permissions({ Permission.ADMINISTRATOR })
 @Route(value = "other", layout = ConfigurationMainContainer.class)
-public class OtherConfigurationView extends VerticalLayout {
-	private static final long				serialVersionUID	= -4104289635957731725L;
+public class OtherConfigurationView extends VerticalScrollLayout {
+	private static final long serialVersionUID = -4104289635957731725L;
 
-	@Autowired
-	private ConfigurationPersistenceManager	cpm					= new ConfigurationPersistenceManager();
+	@Component
+	@ParentContainer("ConfigurationMainContainer")
+	public static class OtherConfigurationPage extends BaseUIPage {
 
-	public OtherConfigurationView() {
-		super();
+		public OtherConfigurationPage() {
+			super(4, "Andere", OtherConfigurationView.class);
+		}
+
+		@Override
+		public boolean matchesPermissions(Collection<String> permissions) {
+			return permissions.contains(Permission.ADMINISTRATOR.toString());
+		}
+
 	}
 
-	@Override
-	protected void onAttach(AttachEvent attachEvent) {
+	@Autowired
+	private ConfigurationPersistenceManager cpm;
 
+	@PostConstruct
+	public void init() {
 		removeAll();
 
 		H3 welcomeMessageHeader = new H3("Wilkommensnachricht.");
@@ -44,8 +58,6 @@ public class OtherConfigurationView extends VerticalLayout {
 
 			cpm.persist(cpm.getBotConfig(), wcm);
 		}));
-
-		super.onAttach(attachEvent);
 	}
 
 }

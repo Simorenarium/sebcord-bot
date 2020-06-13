@@ -2,48 +2,64 @@
 package coffee.michel.sebcord.ui.commands;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import javax.annotation.PostConstruct;
 
-import com.vaadin.flow.component.AttachEvent;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinSession;
 
+import ch.carnet.kasparscherrer.VerticalScrollLayout;
 import coffee.michel.sebcord.Pair;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot.Conversions;
-import coffee.michel.sebcord.ui.Permissions;
+import coffee.michel.sebcord.ui.api.ContainerHelper;
+import coffee.michel.sebcord.ui.api.ParentContainer;
+import coffee.michel.sebcord.ui.api.SebcordUIPage.BaseUIPage;
 import coffee.michel.sebcord.ui.components.EditableGrid;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 
-@Permissions({ Permission.MESSAGE_WRITE })
-@Route(value = "conversions", layout = CommandsContainer.class)
-public class ConversionCommandView extends VerticalLayout {
-	private static final long				serialVersionUID	= -2653637655434962690L;
+@Route(value = "conversions", layout = CommandContainer.class)
+public class ConversionCommandView extends VerticalScrollLayout {
+	private static final long serialVersionUID = -2653637655434962690L;
 
-	@Autowired
-	private ConfigurationPersistenceManager	cpm;
+	@Component
+	@ParentContainer("CommandContainer")
+	public static class ConversionCommandPage extends BaseUIPage {
 
-	public ConversionCommandView() {
-		super();
+		public ConversionCommandPage() {
+			super(1, "Konverter-Command", ConversionCommandView.class);
+		}
+
+		@Override
+		public boolean matchesPermissions(Collection<String> permissions) {
+			return permissions.contains(Permission.MESSAGE_WRITE.toString());
+		}
+
 	}
 
-	@Override
-	protected void onAttach(AttachEvent attachEvent) {
+	@Autowired
+	private ConfigurationPersistenceManager cpm;
+
+	@PostConstruct
+	public void init() {
+		setSizeFull();
 		SebcordBot botConfig = cpm.getBotConfig();
 		Conversions _conversions = botConfig.getConversions();
 		Conversions conversions;
@@ -59,8 +75,7 @@ public class ConversionCommandView extends VerticalLayout {
 		makeInlineEditable(grid);
 		addItems(conversions, grid);
 
-		Member member = VaadinSession.getCurrent().getAttribute(Member.class);
-		if (member != null && member.getPermissions().contains(Permission.ADMINISTRATOR)) {
+		ContainerHelper.ifAuthorized(Permission.ADMINISTRATOR.toString(), () -> {
 			EditableGrid<Entry> submittedGrid = createConversionsGrid();
 			submittedGrid.addColumn(Entry::getSubmittee).setHeader("eingereicht von");
 			submittedGrid.setSelectionMode(SelectionMode.MULTI);
@@ -89,8 +104,9 @@ public class ConversionCommandView extends VerticalLayout {
 				cpm.persist(false, submittedConversions, submittedConversions.getConversionFactors());
 				cpm.persist(false, conversions, conversions.getConversionFactors());
 			}));
-		} else if (member != null && member.getPermissions().contains(Permission.MESSAGE_WRITE)) {
+		});
 
+		ContainerHelper.ifAuthorized(Permission.MESSAGE_WRITE.toString(), () -> {
 			Conversions _submConversions = botConfig.getSubmittedConversions();
 			Conversions submConversions;
 			if (_submConversions == null) {
@@ -143,7 +159,7 @@ public class ConversionCommandView extends VerticalLayout {
 
 			hl.add(sourceUnitField, targetUnitField, factorField, button);
 			add(hl);
-		}
+		});
 	}
 
 	private void addItems(Conversions conversions, EditableGrid<Entry> grid) {

@@ -5,9 +5,16 @@
  */
 package coffee.michel.sebcord.ui.authentication;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import com.vaadin.flow.component.AttachEvent;
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.Shortcuts;
@@ -16,6 +23,9 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.router.BeforeEvent;
+import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.router.OptionalParameter;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinSession;
 
@@ -27,15 +37,17 @@ import net.dv8tion.jda.api.entities.Member;
  * @author Jonas Michel
  *
  */
-@Route(value = "bot/auth")
-public class LoginView extends VerticalLayout {
+@Route(value = "login")
+public class LoginView extends VerticalLayout implements HasUrlParameter<String> {
 	private static final long	serialVersionUID	= 3373038869786353907L;
 
 	@Autowired
 	private JDADCClient			client;
+	@Autowired
+	private Authenticator		auth;
 
-	@Override
-	protected void onAttach(AttachEvent attachEvent) {
+	@PostConstruct
+	public void init() {
 		VerticalLayout hl = new VerticalLayout();
 		hl.setAlignSelf(Alignment.CENTER, this);
 		hl.setAlignItems(Alignment.CENTER);
@@ -44,12 +56,12 @@ public class LoginView extends VerticalLayout {
 		hl.add(h1);
 		Paragraph paragraph = new Paragraph(
 				"Um die Webui verwenden zu können musst du dich mit discord einloggen.\n Dadurch bekommt der Bot deine Discord User-ID.\nDann werden deine Daten vom Sebcord weiter verwendet.\n"
-						+ "Zudem sammle ich ein paar Daten via Google-Statistiken, die sind aber anonym und werden nicht weiter vermittelt. Wenn das irgendwen stört, einfach die Seite nicht benutzen.");
+						+ "Wenn das irgendwen stört, einfach die Seite nicht benutzen.");
 		paragraph.setWidth("40em");
 		hl.add(paragraph);
 		hl.add(new Button("Zu Discord ->", ce -> {
 			UI.getCurrent().getPage()
-					.setLocation(String.valueOf(VaadinSession.getCurrent().getAttribute("discord.oauth.url")));
+					.setLocation(auth.getAuthURL());
 		}));
 
 		add(hl);
@@ -67,6 +79,32 @@ public class LoginView extends VerticalLayout {
 			});
 			return;
 		}, Key.PAGE_UP, KeyModifier.ALT, KeyModifier.CONTROL, KeyModifier.SHIFT);
+	}
+
+	@Override
+	public void setParameter(BeforeEvent event, @OptionalParameter String unused) {
+		Map<String, List<String>> parameters = event.getLocation().getQueryParameters().getParameters();
+		String code = Optional.ofNullable(parameters.get("code")).filter(codes -> !codes.isEmpty())
+				.map(codes -> codes.get(0)).orElse(null);
+		if (code != null) {
+			String token = auth.login(code);
+			if (token == null)
+				return;
+			auth.setToken(token);
+
+			Member member = auth.getMember();
+			if (member == null) {
+				return;
+			}
+
+			List<DiscordGrantedPermission> grantedPermissions = member.getPermissions().stream()
+					.map(DiscordGrantedPermission::new).collect(Collectors.toList());
+
+			SecurityContextHolder.getContext()
+					.setAuthentication(new DiscordAuthentication(token, member, grantedPermissions));
+
+			event.forwardTo(MainView.class);
+		}
 	}
 
 }

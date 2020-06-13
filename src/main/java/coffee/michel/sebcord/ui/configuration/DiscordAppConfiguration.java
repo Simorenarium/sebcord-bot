@@ -1,9 +1,14 @@
 
 package coffee.michel.sebcord.ui.configuration;
 
+import java.util.Collection;
 import java.util.Optional;
 
-import com.vaadin.flow.component.AttachEvent;
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -11,31 +16,44 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
+import ch.carnet.kasparscherrer.VerticalScrollLayout;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.DiscordApplication;
-import coffee.michel.sebcord.ui.Permissions;
+import coffee.michel.sebcord.ui.api.ParentContainer;
+import coffee.michel.sebcord.ui.api.SebcordUIPage.BaseUIPage;
 import net.dv8tion.jda.api.Permission;
 
-@Permissions({ Permission.ADMINISTRATOR })
 @Route(value = "discord-application", layout = ConfigurationMainContainer.class)
-public class DiscordAppConfiguration extends VerticalLayout {
-	private static final long				serialVersionUID	= -1993565705335683085L;
+public class DiscordAppConfiguration extends VerticalScrollLayout {
+	private static final long serialVersionUID = -1993565705335683085L;
+
+	@Component
+	@ParentContainer("ConfigurationMainContainer")
+	public static class DiscordAppConfigurationpage extends BaseUIPage {
+
+		public DiscordAppConfigurationpage() {
+			super(0, "Discord-App", DiscordAppConfiguration.class);
+		}
+
+		@Override
+		public boolean matchesPermissions(Collection<String> permissions) {
+			return permissions.contains(Permission.ADMINISTRATOR.toString());
+		}
+
+	}
 
 	private H3								header;
 	private FormLayout						formLayout;
 	private Button							saveButton;
-	private ConfigurationPersistenceManager	persistence			= new ConfigurationPersistenceManager();
 
-	public DiscordAppConfiguration() {
-		super();
-	}
+	@Autowired
+	private ConfigurationPersistenceManager	persistence;
 
-	@Override
-	protected void onAttach(AttachEvent attachEvent) {
+	@PostConstruct
+	public void init() {
 		header = new H3("Discord-Application Info");
 		formLayout = new FormLayout();
 		saveButton = new Button("Speichern");
@@ -66,6 +84,7 @@ public class DiscordAppConfiguration extends VerticalLayout {
 		formLayout.addFormItem(redirectURLField, "Redirect-URL");
 		formLayout.addFormItem(handlesServerId, "ID des behandelten Server");
 		formLayout.addFormItem(enabled, "Active");
+		formLayout.setWidthFull();
 
 		saveButton.getStyle().set("align-self", "stretch");
 		saveButton.addClickListener(ce -> {
@@ -85,7 +104,6 @@ public class DiscordAppConfiguration extends VerticalLayout {
 		getStyle().set("overflow-x", "hidden");
 		getStyle().set("overflow-y", "auto");
 
-		formLayout.setSizeFull();
 		add(header, formLayout, saveButton);
 		setWidthFull();
 		setHeight(null);

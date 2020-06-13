@@ -1,39 +1,56 @@
 
 package coffee.michel.sebcord.ui.commands;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Collection;
 
-import com.vaadin.flow.component.AttachEvent;
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.listbox.ListBox;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
+import ch.carnet.kasparscherrer.VerticalScrollLayout;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot.MemeCommand;
-import coffee.michel.sebcord.ui.Permissions;
+import coffee.michel.sebcord.ui.api.ParentContainer;
+import coffee.michel.sebcord.ui.api.SebcordUIPage.BaseUIPage;
 import net.dv8tion.jda.api.Permission;
 
-@Permissions({ Permission.ADMINISTRATOR })
-@Route(value = "meme", layout = CommandsContainer.class)
-public class MemeCommandView extends VerticalLayout {
-	private static final long				serialVersionUID	= -2653637655434962690L;
+@Route(value = "meme", layout = CommandContainer.class)
+public class MemeCommandView extends VerticalScrollLayout {
+	private static final long serialVersionUID = -2653637655434962690L;
 
-	@Autowired
-	private ConfigurationPersistenceManager	cpm;
+	@Component
+	@ParentContainer("CommandContainer")
+	public static class MemeCommandPage extends BaseUIPage {
 
-	public MemeCommandView() {
-		super();
+		public MemeCommandPage() {
+			super(0, "Meme-Command", MemeCommandView.class);
+		}
+
+		@Override
+		public boolean matchesPermissions(Collection<String> permissions) {
+			return permissions.contains(Permission.ADMINISTRATOR.toString());
+		}
+
 	}
 
-	@Override
-	protected void onAttach(AttachEvent attachEvent) {
+	@Autowired
+	private ConfigurationPersistenceManager cpm;
+
+	@PostConstruct
+	public void init() {
+		setSizeFull();
+
 		SebcordBot botConfig = cpm.getBotConfig();
 		MemeCommand _memeCommand = botConfig.getMemeCommand();
 		if (_memeCommand == null) {
@@ -74,6 +91,7 @@ public class MemeCommandView extends VerticalLayout {
 		Checkbox active = new Checkbox(memeCommand.isActive());
 		add(active);
 
+		add(new H3(""));
 		add(new Button("Speichern", ce -> {
 			Long pauseTimeInMinutes = Long.valueOf(pauseTimeField.getValue());
 			memeCommand.setPauseTime(pauseTimeInMinutes * 60 * 1000);

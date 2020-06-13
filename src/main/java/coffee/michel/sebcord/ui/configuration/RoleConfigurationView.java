@@ -1,13 +1,16 @@
 
 package coffee.michel.sebcord.ui.configuration;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import javax.annotation.PostConstruct;
 
-import com.vaadin.flow.component.AttachEvent;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.grid.dnd.GridDropLocation;
@@ -16,32 +19,43 @@ import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.listbox.ListBox;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.Route;
 
+import ch.carnet.kasparscherrer.VerticalScrollLayout;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot;
 import coffee.michel.sebcord.configuration.persistence.SebcordBot.RoleTransition;
-import coffee.michel.sebcord.ui.Permissions;
+import coffee.michel.sebcord.ui.api.ParentContainer;
+import coffee.michel.sebcord.ui.api.SebcordUIPage.BaseUIPage;
 import coffee.michel.sebcord.ui.components.EditableGrid;
 import net.dv8tion.jda.api.Permission;
 
-@Permissions({ Permission.ADMINISTRATOR })
 @Route(value = "roles", layout = ConfigurationMainContainer.class)
-public class RoleConfigurationView extends VerticalLayout {
-	private static final long				serialVersionUID	= 6152683733129390841L;
+public class RoleConfigurationView extends VerticalScrollLayout {
+	private static final long serialVersionUID = 6152683733129390841L;
 
-	@Autowired
-	private ConfigurationPersistenceManager	persistence;
+	@Component
+	@ParentContainer("ConfigurationMainContainer")
+	public static class RoleConfigurationPage extends BaseUIPage {
 
-	public RoleConfigurationView() {
-		super();
+		public RoleConfigurationPage() {
+			super(2, "Rollen", RoleConfigurationView.class);
+		}
+
+		@Override
+		public boolean matchesPermissions(Collection<String> permissions) {
+			return permissions.contains(Permission.ADMINISTRATOR.toString());
+		}
+
 	}
 
-	@Override
-	protected void onAttach(AttachEvent attachEvent) {
+	@Autowired
+	private ConfigurationPersistenceManager persistence;
+
+	@PostConstruct
+	public void init() {
 		removeAll();
 		SebcordBot botConfig = persistence.getBotConfig();
 
@@ -97,6 +111,7 @@ public class RoleConfigurationView extends VerticalLayout {
 		H3 roleTransitionHeader = new H3("Rollen Übergänge");
 
 		EditableGrid<RoleTransition> grid = new EditableGrid<>(RoleTransition.class);
+		grid.setMinHeight("10em");
 		grid.removeAllColumns();
 
 		Binder<RoleTransition> trBinder = new Binder<>(RoleTransition.class);
@@ -170,7 +185,7 @@ public class RoleConfigurationView extends VerticalLayout {
 		});
 
 		add(saveButton);
-		this.setSizeFull();
+		setWidthFull();
 	}
 
 }

@@ -1,5 +1,5 @@
 
-package coffee.michel.sebcord.ui.configuration;
+package coffee.michel.sebcord.ui.commands;
 
 import java.util.Collection;
 
@@ -16,38 +16,39 @@ import coffee.michel.sebcord.ui.api.ParentContainer;
 import coffee.michel.sebcord.ui.api.SebcordUIPage.BaseUIPage;
 import net.dv8tion.jda.api.Permission;
 
-@Route(value = "overview", layout = ConfigurationMainContainer.class)
-public class ConfigurationMain extends VerticalScrollLayout {
-	private static final long serialVersionUID = -4457785277499235687L;
+@Route(value = "overview", layout = CommandContainer.class)
+public class CommandOverview extends VerticalScrollLayout {
+	private static final long serialVersionUID = 8518324137441769109L;
 
 	@Component
 	@ParentContainer("MainContainer")
-	public static class ConfigurationMainPage extends BaseUIPage {
+	public static class CommandOverviewPage extends BaseUIPage {
 
-		public ConfigurationMainPage() {
-			super(0, "Einstellungen", VaadinIcon.COG, ConfigurationMain.class);
+		public CommandOverviewPage() {
+			super(1, "Commands", VaadinIcon.COG, CommandOverview.class);
 		}
 
 		@Override
 		public boolean matchesPermissions(Collection<String> permissions) {
-			return permissions.contains(Permission.ADMINISTRATOR.toString());
+			return permissions.contains(Permission.MESSAGE_WRITE.toString());
 		}
 
 	}
-
-	private Label lblContent;
 
 	@PostConstruct
 	public void init() {
 		this.lblContent = new Label();
 
-		this.setClassName("my-view my-startview ");
-		this.lblContent.setText("Einstellungen");
+		this.lblContent.setText("Commands");
 		this.lblContent.getStyle().set("font-size", "5em");
 
 		this.lblContent.setSizeUndefined();
 		this.add(this.lblContent);
 		this.setSizeFull();
-	}
+	} // </generated-code>
+
+	// <generated-code name="variables">
+	private Label lblContent;
+	// </generated-code>
 
 }

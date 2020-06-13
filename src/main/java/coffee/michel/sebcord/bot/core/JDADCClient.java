@@ -135,6 +135,11 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 		return getJda().getGuildById(cpm.getBotConfig().getHandledServerId());
 	}
 
+	public Optional<Member> getMemberByName(String username) {
+		return Optional.ofNullable(getGuild().getMembersByNickname(username, true))
+				.filter(members -> !members.isEmpty()).map(ls -> ls.get(0));
+	}
+
 	public Optional<User> getUserById(Long developerUserId) {
 		return Optional.ofNullable(jda.getUserById(developerUserId));
 	}
