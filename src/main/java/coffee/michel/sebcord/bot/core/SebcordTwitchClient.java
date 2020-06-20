@@ -12,11 +12,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -28,9 +30,10 @@ import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceM
 import coffee.michel.sebcord.configuration.persistence.TwitchConfiguration;
 import coffee.michel.sebcord.configuration.persistence.TwitchConfiguration.TrackedChannel;
 import coffee.michel.sebcord.persistence.PersistenceManager;
-import kong.unirest.GetRequest;
 import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
+import kong.unirest.json.JSONObject;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.TextChannel;
 
@@ -38,31 +41,29 @@ import net.dv8tion.jda.api.entities.TextChannel;
  * @author Jonas Michel
  *
  */
-//@Component
+@Component
 @Scope("singleton")
 public class SebcordTwitchClient implements ApplicationListener<ApplicationStartedEvent> {
 
 	@Autowired
-	private ConfigurationPersistenceManager	cpm;
+	private ConfigurationPersistenceManager cpm;
 	@Autowired
-	private JDADCClient						dccClient;
+	private JDADCClient dccClient;
 	@Autowired
-	private PersistenceManager				persistence;
-	private ScheduledExecutorService		exe					= Factory.executor();
+	private PersistenceManager persistence;
+	private ScheduledExecutorService exe = Factory.executor();
 
-	private Map<String, Long>				lastNotifiedChannel	= new HashMap<String, Long>();
-	private Map<TrackedChannel, Future<?>>	runningTasks		= new HashMap<>();
+	private Map<String, Long> lastNotifiedChannel = new HashMap<String, Long>();
+	private Map<TrackedChannel, Future<?>> runningTasks = new HashMap<>();
+
+	private AtomicReference<String> accessToken = new AtomicReference<>();
 
 	@Override
 	public void onApplicationEvent(ApplicationStartedEvent event) {
-		TwitchConfiguration twitchSettings = cpm.getTwitchConfig();
-		var clientId = twitchSettings.getClientId();
-		twitchSettings.getTrackedChannels().forEach(trackedChannel -> {
-			schedulePolling(clientId, trackedChannel);
-		});
+		aquireAccessToken();
 
 		exe.scheduleAtFixedRate(() -> {
-
+			var clientId = cpm.getTwitchConfig().getClientId();
 			Set<TrackedChannel> trackedChannels = cpm.getTwitchConfig().getTrackedChannels();
 			for (TrackedChannel trackedChannel : trackedChannels) {
 				Future<?> future = runningTasks.get(trackedChannel);
@@ -75,20 +76,46 @@ public class SebcordTwitchClient implements ApplicationListener<ApplicationStart
 				}
 			}
 
-		}, 1, 1, TimeUnit.HOURS);
+		}, 0, 1, TimeUnit.HOURS);
+	}
+
+	private void aquireAccessToken() {
+		TwitchConfiguration twitchSettings = cpm.getTwitchConfig();
+		
+		HttpResponse<JsonNode> response = Unirest.post("https://id.twitch.tv/oauth2/token")
+				.queryString("client_id", twitchSettings.getClientId())
+				.queryString("client_secret", twitchSettings.getClientSecret())
+				.queryString("grant_type", "client_credentials").queryString("scope", "viewing_activity_read").asJson();
+
+		if (response.getStatus() != 200) {
+			// TODO log
+			return;
+		}
+
+		JsonNode json = response.getBody();
+
+		JSONObject object = json.getObject();
+		var accessToken = object.getString("access_token");
+		var expiry = object.getLong("expires_in");
+
+		this.accessToken.set(accessToken);
+		exe.schedule(() -> aquireAccessToken(), expiry, TimeUnit.MILLISECONDS);
 	}
 
 	private void schedulePolling(String clientId, TrackedChannel trackedChannel) {
 		String trackedChannelName = trackedChannel.getName();
 
-		GetRequest getRequest = Unirest.get("https://api.twitch.tv/helix/streams")
-				.queryString("user_login", trackedChannelName)
-				.header("Client-ID", clientId);
 		Gson gson = new Gson();
 
 		ScheduledFuture<?> scheduleWithFixedDelay = exe.scheduleWithFixedDelay(() -> {
 			try {
-				HttpResponse<byte[]> response = getRequest.asBytes();
+				String value = accessToken.get();
+				if(value == null)
+					return;
+				
+				HttpResponse<byte[]> response = Unirest.get("https://api.twitch.tv/helix/streams")
+						.queryString("user_login", trackedChannelName).header("Client-ID", clientId)
+						.header("Authorization","Bearer " + value).asBytes();
 				if (response.getStatus() != 200)
 					return;
 				JsonObject json = gson.fromJson(new String(response.getBody()), JsonObject.class);

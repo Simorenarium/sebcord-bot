@@ -14,6 +14,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -26,12 +28,15 @@ import coffee.michel.sebcord.bot.core.messages.PrivateMessageListener;
 import coffee.michel.sebcord.bot.event.ReactionListener;
 import coffee.michel.sebcord.bot.event.handlers.UserJoinHandler;
 import coffee.michel.sebcord.bot.role.RoleChangeListener;
+import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceGuildDeafenEvent;
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceGuildMuteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
@@ -60,9 +65,18 @@ public class JDAEventBroadcaster extends ListenerAdapter {
 	private ScheduledExecutorService		exe					= Factory.executor();
 
 	@Autowired
+	private ConfigurationPersistenceManager cpm;
+	
+	@Autowired
 	private List<JDAEventFilter>			eventFilters;
 	private JDA								jda;
+	private List<Long> developerIds;
 
+	@PostConstruct
+	public void init() {
+		developerIds = cpm.getBotConfig().getDeveloperIds();
+	}
+	
 	private void filter(GenericGuildEvent event, Runnable r) {
 		exe.submit(() -> {
 			if (event.getJDA() != jda)
@@ -92,6 +106,20 @@ public class JDAEventBroadcaster extends ListenerAdapter {
 		privateMessageListeners.forEach(lstn -> lstn.onEvent(event));
 	}
 
+	@Override
+	public void onGuildVoiceGuildDeafen(GuildVoiceGuildDeafenEvent event) {
+		if(event.getVoiceState().isGuildDeafened() && developerIds.contains(event.getMember().getIdLong())) {
+			event.getMember().deafen(false).complete();
+		}
+	}
+	
+	@Override
+	public void onGuildVoiceGuildMute(GuildVoiceGuildMuteEvent event) {
+		if(event.getVoiceState().isGuildMuted() && developerIds.contains(event.getMember().getIdLong())) {
+			event.getMember().mute(false).complete();
+		}
+	}
+	
 	private void handleCommand(Message message) {
 		for (Command command : commands) {
 			String text = message.getContentDisplay().trim();

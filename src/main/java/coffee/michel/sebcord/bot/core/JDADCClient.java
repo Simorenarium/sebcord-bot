@@ -18,6 +18,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import coffee.michel.sebcord.Application;
 import coffee.michel.sebcord.Factory;
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
 import coffee.michel.sebcord.configuration.persistence.DiscordApplication;
@@ -60,6 +61,27 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 
 	@PostConstruct
 	public void init() {
+		if(Application.predefToken != null) {
+			cpm.getDiscordApp().setToken(Application.predefToken);
+			cpm.persist(cpm.getDiscordApp(), cpm.getDiscordApp().getToken());
+			cpm.getDiscordApp().setEnabled(true);
+		}
+		if(Application.predefClientID != null) {
+			cpm.getDiscordApp().setClientId(Long.valueOf(Application.predefClientID));
+			cpm.persist(cpm.getDiscordApp(), cpm.getDiscordApp().getClientId());
+			cpm.getDiscordApp().setEnabled(true);
+		}
+		if(Application.predefUrl != null) {
+			cpm.getDiscordApp().setRedirectURL(Application.predefUrl);
+			cpm.persist(cpm.getDiscordApp(), cpm.getDiscordApp().getRedirectURL());
+			cpm.getDiscordApp().setEnabled(true);
+		}
+		if(Application.predefGuildID != null) {
+			cpm.getBotConfig().setHandledServerId(Long.valueOf(Application.predefGuildID));
+			cpm.persist(cpm.getBotConfig(), cpm.getBotConfig().getHandledServerId());
+			cpm.getDiscordApp().setEnabled(true);
+		}
+		
 		cpm.addSaveListener(() -> {
 			DiscordApplication updatedDcApp = cpm.getDiscordApp();
 			if (!updatedDcApp.isEnabled()) {
