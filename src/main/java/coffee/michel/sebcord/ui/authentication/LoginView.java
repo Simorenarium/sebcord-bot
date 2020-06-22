@@ -27,7 +27,6 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.OptionalParameter;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.VaadinSession;
 
 import coffee.michel.sebcord.bot.core.JDADCClient;
 import coffee.michel.sebcord.ui.MainView;
@@ -72,8 +71,7 @@ public class LoginView extends VerticalLayout implements HasUrlParameter<String>
 
 			UI.getCurrent().getPage().executeJs(command).then(val -> {
 				client.getMemberById(val.asString()).ifPresent(member -> {
-					VaadinSession.getCurrent().setAttribute(Member.class, member);
-					VaadinSession.getCurrent().setAttribute("discord.token", "workaround.login");
+					doAuthenticate("", member);
 					UI.getCurrent().navigate(MainView.class);
 				});
 			});
@@ -97,14 +95,17 @@ public class LoginView extends VerticalLayout implements HasUrlParameter<String>
 				return;
 			}
 
-			List<DiscordGrantedPermission> grantedPermissions = member.getPermissions().stream()
-					.map(DiscordGrantedPermission::new).collect(Collectors.toList());
-
-			SecurityContextHolder.getContext()
-					.setAuthentication(new DiscordAuthentication(token, member, grantedPermissions));
-
+			doAuthenticate(token, member);
 			event.forwardTo(MainView.class);
 		}
+	}
+
+	private void doAuthenticate(String token, Member member) {
+		List<DiscordGrantedPermission> grantedPermissions = member.getPermissions().stream()
+				.map(DiscordGrantedPermission::new).collect(Collectors.toList());
+
+		SecurityContextHolder.getContext()
+				.setAuthentication(new DiscordAuthentication(token, member, grantedPermissions));
 	}
 
 }

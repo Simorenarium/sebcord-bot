@@ -27,7 +27,7 @@ public interface SebcordUIPage extends Comparable<SebcordUIPage> {
 	Class<? extends Component> getPageClass();
 
 	default boolean matchesPermissions(Collection<String> permissions) {
-		return true;
+		return false;
 	}
 
 	default boolean matchesAuthority(Collection<? extends GrantedAuthority> authorities) {

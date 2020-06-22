@@ -57,10 +57,16 @@ public class SebcordTwitchClient implements ApplicationListener<ApplicationStart
 	private Map<TrackedChannel, Future<?>> runningTasks = new HashMap<>();
 
 	private AtomicReference<String> accessToken = new AtomicReference<>();
+	private ScheduledFuture<?> reaquiryOfAccessToken;
 
 	@Override
 	public void onApplicationEvent(ApplicationStartedEvent event) {
 		aquireAccessToken();
+		cpm.addSaveListener(() -> {
+			if (reaquiryOfAccessToken != null)
+				reaquiryOfAccessToken.cancel(true);
+			aquireAccessToken();
+		});
 
 		exe.scheduleAtFixedRate(() -> {
 			var clientId = cpm.getTwitchConfig().getClientId();
@@ -99,7 +105,7 @@ public class SebcordTwitchClient implements ApplicationListener<ApplicationStart
 		var expiry = object.getLong("expires_in");
 
 		this.accessToken.set(accessToken);
-		exe.schedule(() -> aquireAccessToken(), expiry, TimeUnit.MILLISECONDS);
+		reaquiryOfAccessToken = exe.schedule(() -> aquireAccessToken(), expiry, TimeUnit.MILLISECONDS);
 	}
 
 	private void schedulePolling(String clientId, TrackedChannel trackedChannel) {
@@ -110,12 +116,12 @@ public class SebcordTwitchClient implements ApplicationListener<ApplicationStart
 		ScheduledFuture<?> scheduleWithFixedDelay = exe.scheduleWithFixedDelay(() -> {
 			try {
 				String value = accessToken.get();
-				if(value == null)
+				if (value == null)
 					return;
-				
+
 				HttpResponse<byte[]> response = Unirest.get("https://api.twitch.tv/helix/streams")
 						.queryString("user_login", trackedChannelName).header("Client-ID", clientId)
-						.header("Authorization","Bearer " + value).asBytes();
+						.header("Authorization", "Bearer " + value).asBytes();
 				if (response.getStatus() != 200)
 					return;
 				JsonObject json = gson.fromJson(new String(response.getBody()), JsonObject.class);
