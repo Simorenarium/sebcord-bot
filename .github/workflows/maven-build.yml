@@ -1,9 +1,15 @@
 name: Maven Build
 on:
   push:
-    branches: [ master, feature/*, bugfix/* ]
+    branches:
+      - 'master'
+      - 'feature/*'
+      - 'bugfix/*'
   pull_request:
-    branches: [ master, feature/*, bugfix/* ]
+    branches:
+      - 'master'
+      - 'feature/*'
+      - 'bugfix/*'
 
 jobs:
   build:
