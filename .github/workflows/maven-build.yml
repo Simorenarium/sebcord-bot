@@ -33,7 +33,7 @@ jobs:
           ${{ runner.os }}-node-
 
     - name: Setup Node & NPM
-      run: ./mvnw com.github.eirslett:frontend-maven-plugin:1.7.6:install-node-and-npm -DnodeVersion="v12.14.0" -Drelease=true
+      run: bash mvnw com.github.eirslett:frontend-maven-plugin:1.7.6:install-node-and-npm -DnodeVersion="v12.14.0" -Drelease=true
 
     - name: Build Product
-      run: ./mvnw verify -Drelease=true
+      run: bash mvnw verify -Drelease=true

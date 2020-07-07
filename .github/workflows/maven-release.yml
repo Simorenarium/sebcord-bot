@@ -24,12 +24,12 @@ jobs:
         settings-path: ${{ github.workspace }} # location for the settings.xml file
 
     - name: Setup Node & NPM
-      run: ./mvnw com.github.eirslett:frontend-maven-plugin:1.7.6:install-node-and-npm -DnodeVersion="v12.14.0" -Drelease=true
+      run: bash mvnw com.github.eirslett:frontend-maven-plugin:1.7.6:install-node-and-npm -DnodeVersion="v12.14.0" -Drelease=true
 
     - name: Build Product
-      run: ./mvnw verify -Drelease=true
+      run: bash mvnw verify -Drelease=true
 
     - name: Publish to GitHub Packages Apache Maven
-      run: ./mvnw deploy -s $GITHUB_WORKSPACE/settings.xml -Drelease=true
+      run: bash mvnw deploy -s $GITHUB_WORKSPACE/settings.xml -Drelease=true
       env:
         GITHUB_TOKEN: ${{ github.token }}
