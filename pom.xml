@@ -10,8 +10,8 @@
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>coffee.michel.sebcord</groupId>
-	<artifactId>coffee.michel.sebcord</artifactId>
-	<version>3.0.1-SNAPSHOT</version>
+	<artifactId>coffee.michel.sebcord.bot</artifactId>
+	<version>3.0.1</version>
 	<name>coffee.michel.sebcord</name>
 	<description>Sebcord</description>
 
@@ -27,6 +27,14 @@
 			<timezone>+2</timezone>
 		</developer>
 	</developers>
+
+	<distributionManagement>
+		<repository>
+			<id>github</id>
+			<name>Github Simorenarium Packages</name>
+			<url>https://maven.pkg.github.com/Simorenarium</url>
+		</repository>
+	</distributionManagement>
 
 	<properties>
 		<node.version>v12.14.0</node.version>
@@ -137,6 +145,7 @@
 	</dependencies>
 
 	<build>
+		<finalName>${project.artifactId}</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
