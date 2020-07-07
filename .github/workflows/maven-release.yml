@@ -36,4 +36,4 @@ jobs:
         mvn deploy:deploy-file -DpomFile=pom.xml \
         -Dfile=target/coffee.michel.sebcord.bot-*
         -DrepositoryId=github \
-        -Durl=https://maven.pkg.github.com/Simorenarium
+        -Durl="https://maven.pkg.github.com/Simorenarium"
