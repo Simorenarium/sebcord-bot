@@ -22,3 +22,5 @@ jobs:
         java-version: 11
     - name: Build with Maven
       run: mvn clean com.github.eirslett:frontend-maven-plugin:1.7.6:install-node-and-npm -DnodeVersion="v12.14.0" verify
+    - name: Deploy maven
+      run: mvn deploy -Dregistry=https://maven.pkg.github.com/Simorenarium -Dtoken=GH_TOKEN
