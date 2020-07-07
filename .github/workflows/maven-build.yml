@@ -25,7 +25,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
-    - uses: actions/cache@v2
+    - name: Cache Node resources
+      uses: actions/cache@v2
       with:
         path: node
         key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
