@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import coffee.michel.sebcord.data.MessageStoreTask.MessageData;
 import one.microstream.persistence.lazy.Lazy;
 
 /**
@@ -26,7 +25,6 @@ class DataRoot {
 	private Lazy<Map<Long, Instant>>					mutedUsers				= Lazy.Reference(new HashMap<>());
 	private Set<String>									wordblacklist			= new HashSet<>();
 	private List<Lazy<Vote>>							votes					= new ArrayList<>();
-	private Map<Long, Lazy<List<Lazy<MessageData>>>>	messages				= new HashMap<>();
 	private String										lastAnnouncedStreamId	= "";
 	private Map<Long, Instant>							lastUserMessage			= new HashMap<>();
 
@@ -56,10 +54,6 @@ class DataRoot {
 
 	public Set<String> getWordblacklist() {
 		return wordblacklist;
-	}
-
-	public Map<Long, Lazy<List<Lazy<MessageData>>>> getMessages() {
-		return messages;
 	}
 
 	public void foreachOngoingVote(Consumer<Vote> consumer) {
