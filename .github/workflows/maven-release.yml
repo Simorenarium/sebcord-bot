@@ -25,9 +25,6 @@ jobs:
     - name: Setup Node & NPM
       run: bash mvnw com.github.eirslett:frontend-maven-plugin:1.7.6:install-node-and-npm -DnodeVersion="v12.14.0" -Drelease=true
 
-    - name: Build Product
-      run: bash mvnw verify -Drelease=true
-
     - name: Deploy to Github Package Registry
       env:
         GITHUB_TOKEN: ${{ github.token }}
@@ -36,9 +33,9 @@ jobs:
         if command -v tree >/dev/null 2>&1; then
           tree
         else
-          ls -alh
+          ls target
         fi
-        bash mvnw deploy:deploy-file -DpomFile=pom.xml \
+        bash mvnw verify deploy:deploy-file -DpomFile=pom.xml \
         -Dfile=target/coffee.michel.sebcord.bot.jar \
         -DrepositoryId=github \
         -Durl="https://maven.pkg.github.com/Simorenarium"
