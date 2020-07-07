@@ -33,7 +33,11 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
       run: |
         echo "<settings><servers><server><id>github</id><username>Simorenarium</username><password>${GITHUB_TOKEN}</password></server></servers></settings>" > ~/.m2/settings.xml
-        cat ~/.m2/settings.xml
+        if command -v tree >/dev/null 2>&1; then
+          tree
+        else
+          ls -alh
+        fi
         bash mvnw deploy:deploy-file -DpomFile=pom.xml \
         -Dfile=target/coffee.michel.sebcord.bot.jar \
         -DrepositoryId=github \
