@@ -10,8 +10,8 @@
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>coffee.michel.sebcord</groupId>
-	<artifactId>coffee.michel.sebcord</artifactId>
-	<version>3.0.1-SNAPSHOT</version>
+	<artifactId>coffee.michel.sebcord.bot</artifactId>
+	<version>3.0.1</version>
 	<name>coffee.michel.sebcord</name>
 	<description>Sebcord</description>
 
@@ -27,7 +27,7 @@
 			<timezone>+2</timezone>
 		</developer>
 	</developers>
-	
+
 	<distributionManagement>
 		<repository>
 			<id>github</id>
@@ -175,6 +175,16 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<configuration>
+					<artifactId>${project.artifactId}</artifactId>
+					<groupId>${project.artifactId}</groupId>
+					<version>${project.version}</version>
+					<file>${project.artifactId}-${project.version}.jar</file>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
