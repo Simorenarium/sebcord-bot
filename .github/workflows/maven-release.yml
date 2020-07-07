@@ -28,7 +28,10 @@ jobs:
     - name: Build Product
       run: bash mvnw verify -Drelease=true
 
-    - name: Publish to GitHub Packages Apache Maven
-      run: bash mvnw deploy -s $GITHUB_WORKSPACE/settings.xml -Drelease=true
+    - name: Deploy to Github Package Registry
       env:
         GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        mkdir ~/.m2
+        echo "<settings><servers><server><id>github</id><username>Simorenarium</username><password>${GITHUB_TOKEN}</password></server></servers></settings>" > ~/.m2/settings.xml
+        mvn deploy -Drelease=true

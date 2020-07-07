@@ -27,6 +27,14 @@
 			<timezone>+2</timezone>
 		</developer>
 	</developers>
+	
+	<distributionManagement>
+		<repository>
+			<id>github</id>
+			<name>Github Simorenarium Packages</name>
+			<url>https://maven.pkg.github.com/Simorenarium</url>
+		</repository>
+	</distributionManagement>
 
 	<properties>
 		<node.version>v12.14.0</node.version>
