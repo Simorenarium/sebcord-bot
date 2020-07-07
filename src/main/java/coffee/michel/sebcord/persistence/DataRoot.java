@@ -5,6 +5,7 @@
 package coffee.michel.sebcord.persistence;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,7 +60,7 @@ class DataRoot {
 	public void foreachOngoingVote(Consumer<Vote> consumer) {
 		for (Lazy<Vote> lazy : votes) {
 			Vote vote = lazy.get();
-			if (vote.getStart().plus(vote.getTimeout()).isAfter(Instant.now()))
+			if (LocalDateTime.now().isBefore(vote.getTimeout()))
 				consumer.accept(vote);
 			Lazy.clear(lazy);
 		}
@@ -68,7 +69,7 @@ class DataRoot {
 	public void foreachPassedVote(Consumer<Vote> consumer) {
 		for (Lazy<Vote> lazy : votes) {
 			Vote vote = lazy.get();
-			if (vote.getStart().plus(vote.getTimeout()).isBefore(Instant.now()))
+			if (LocalDateTime.now().isAfter(vote.getTimeout()))
 				consumer.accept(vote);
 			Lazy.clear(lazy);
 		}

@@ -1,7 +1,7 @@
 package coffee.michel.sebcord.persistence;
 
-import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -9,9 +9,27 @@ import java.util.Objects;
 public class Vote {
 
 	public static class Option {
-		private String	name;
-		private String	unicode;
-		private String	emoteId;
+		private String name;
+		private String unicode;
+		private String emoteId;
+		private String attachmentData;
+		private String attachmentName;
+
+		public void setAttachmentData(String attachmentData) {
+			this.attachmentData = attachmentData;
+		}
+
+		public String getAttachmentData() {
+			return attachmentData;
+		}
+
+		public void setAttachmentName(String attachmentName) {
+			this.attachmentName = attachmentName;
+		}
+
+		public String getAttachmentName() {
+			return attachmentName;
+		}
 
 		public String getName() {
 			return name;
@@ -39,7 +57,7 @@ public class Vote {
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(emoteId, name, unicode);
+			return Objects.hash(emoteId, name, unicode, attachmentName);
 		}
 
 		@Override
@@ -52,31 +70,43 @@ public class Vote {
 				return false;
 			Option other = (Option) obj;
 			return Objects.equals(emoteId, other.emoteId) && Objects.equals(name, other.name)
-					&& Objects.equals(unicode, other.unicode);
+					&& Objects.equals(unicode, other.unicode)
+					&& Objects.equals(attachmentName, other.attachmentName);
 		}
 
 		@Override
 		public String toString() {
-			return "Option [name=" + name + ", unicode=" + unicode + ", emoteId=" + emoteId + "]";
+			return "Option [name=" + name + ", unicode=" + unicode + ", emoteId=" + emoteId + ", attachmentName="
+					+ attachmentName + "]";
 		}
 
 	}
 
-	private String					title;
-	private String					description;
-	private String					author;
-	private List<Option>			options;
-	private Map<Option, Integer>	votes;
-	private Duration				timeout;
-	private Instant					start;
-	private long					messageId;
+	private long id;
+	private String title;
+	private String description;
+	private Long author;
+	private List<Option> options;
+	private Map<Option, List<Long>> votes;
+	private LocalDateTime timeout;
+	private LocalDateTime start;
+	private Long messageId;
+	private Long channelId;
 
-	public long getMessageId() {
-		return messageId;
+	public long getChannelId() {
+		return channelId == null ? -1 : channelId;
 	}
 
-	public void setMessageId(long messageId) {
-		this.messageId = messageId;
+	public void setChannelId(long channelId) {
+		this.channelId = channelId;
+	}
+
+	public long getId() {
+		return id;
+	}
+
+	public void setId(long id) {
+		this.id = id;
 	}
 
 	public String getTitle() {
@@ -95,49 +125,57 @@ public class Vote {
 		this.description = description;
 	}
 
-	public String getAuthor() {
+	public Long getAuthor() {
 		return author;
 	}
 
-	public void setAuthor(String author) {
+	public void setAuthor(Long author) {
 		this.author = author;
 	}
 
 	public List<Option> getOptions() {
-		return options;
+		return options == null ? options = new LinkedList<>() : options;
 	}
 
 	public void setOptions(List<Option> options) {
 		this.options = options;
 	}
 
-	public Map<Option, Integer> getVotes() {
+	public Map<Option, List<Long>> getVotes() {
 		return votes;
 	}
 
-	public void setVotes(Map<Option, Integer> votes) {
+	public void setVotes(Map<Option, List<Long>> votes) {
 		this.votes = votes;
 	}
 
-	public Duration getTimeout() {
+	public LocalDateTime getTimeout() {
 		return timeout;
 	}
 
-	public void setTimeout(Duration timeout) {
+	public void setTimeout(LocalDateTime timeout) {
 		this.timeout = timeout;
 	}
 
-	public Instant getStart() {
+	public LocalDateTime getStart() {
 		return start;
 	}
 
-	public void setStart(Instant start) {
+	public void setStart(LocalDateTime start) {
 		this.start = start;
+	}
+
+	public long getMessageId() {
+		return messageId == null ? -1 : messageId;
+	}
+
+	public void setMessageId(long messageId) {
+		this.messageId = messageId;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(author, description, options, start, timeout, title, votes, messageId);
+		return Objects.hash(author, description, messageId, options, start, timeout, title, votes, id, channelId);
 	}
 
 	@Override
@@ -150,15 +188,17 @@ public class Vote {
 			return false;
 		Vote other = (Vote) obj;
 		return Objects.equals(author, other.author) && Objects.equals(description, other.description)
-				&& Objects.equals(options, other.options) && Objects.equals(start, other.start)
-				&& Objects.equals(timeout, other.timeout) && Objects.equals(title, other.title)
-				&& Objects.equals(votes, other.votes) && Objects.equals(messageId, other.messageId);
+				&& messageId == other.messageId && Objects.equals(options, other.options)
+				&& Objects.equals(start, other.start) && Objects.equals(timeout, other.timeout)
+				&& Objects.equals(title, other.title) && Objects.equals(votes, other.votes) && id == other.id
+				&& Objects.equals(channelId, other.channelId);
 	}
 
 	@Override
 	public String toString() {
-		return "Vote [title=" + title + ", description=" + description + ", author=" + author + ", options=" + options
-				+ ", votes=" + votes + ", timeout=" + timeout + ", start=" + start + ",messageId=" + messageId + "]";
+		return "Vote [id=" + id + ", title=" + title + ", description=" + description + ", author=" + author
+				+ ", options=" + options + ", votes=" + votes + ", timeout=" + timeout + ", start=" + start
+				+ ", messageId=" + messageId + ", channelId=" + channelId + "]";
 	}
 
 }

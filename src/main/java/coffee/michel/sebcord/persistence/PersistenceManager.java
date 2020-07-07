@@ -8,6 +8,7 @@ import java.io.File;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -161,4 +162,45 @@ public class PersistenceManager {
 		return false;
 	}
 
+	public Lazy<Vote> getVote(long id) {
+		return droot.getVotes().stream().filter(vote -> {
+			var v = vote.get();
+			if(v.getId() != id) {
+				Lazy.clear(vote);
+				return false;
+			}
+			return true;
+		}).findAny().orElse(null);
+	}
+	
+	public void persist(Vote vote) {
+		Lazy<Vote> persVote = getVote(vote.getId());
+		List<Lazy<Vote>> votes = droot.getVotes();
+		if(persVote == null) {
+			storage.store(vote);
+			persVote = Lazy.Reference(vote);
+		} else {
+			votes.remove(persVote);
+			storage.store(votes);
+		}
+		List<Option> options = vote.getOptions();
+		for (Option option : options) {
+			storage.store(option);
+		}
+		
+		votes.add(persVote);
+		storage.store(persVote);
+		storage.store(votes);
+	}
+
+	public void persist(List<Vote> memberVotes) {
+		List<Vote> nonPersistentVotes = new LinkedList<>(memberVotes);
+		memberVotes.clear();
+		storage.store(memberVotes);
+		memberVotes.addAll(nonPersistentVotes);
+		for (Vote vote : memberVotes) {
+			persist(vote);
+		}
+	}
+	
 }
