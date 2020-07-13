@@ -12,19 +12,22 @@ public class Application {
 
 	public static String predefToken;
 	public static String predefUrl;
-	public static String predefClientID ;
+	public static String predefClientID;
+	public static String predefClientSecret;
 	public static String predefGuildID;
 
 	public static void main(String[] args) {
 		for (String string : args) {
-			if(string.startsWith("sebcord.token"))
+			if (string.startsWith("sebcord.token"))
 				predefToken = string.split("=")[1];
-			if(string.startsWith("sebcord.id"))
+			if (string.startsWith("sebcord.id"))
 				predefClientID = string.split("=")[1];
-			if(string.startsWith("sebcord.guildId"))
+			if (string.startsWith("sebcord.guildId"))
 				predefGuildID = string.split("=")[1];
-			if(string.startsWith("sebcord.url"))
+			if (string.startsWith("sebcord.url"))
 				predefUrl = string.split("=")[1];
+			if (string.startsWith("sebcord.secret"))
+				predefClientSecret = string.split("=")[1];
 		}
 		
 		System.setProperty(SecurityContextHolder.SYSTEM_PROPERTY,

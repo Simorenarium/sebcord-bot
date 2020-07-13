@@ -6,7 +6,6 @@ package coffee.michel.sebcord.persistence;
 
 import java.io.File;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -23,7 +22,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceManager;
-import coffee.michel.sebcord.data.MessageStoreTask.MessageData;
 import one.microstream.persistence.lazy.Lazy;
 import one.microstream.storage.types.EmbeddedStorage;
 import one.microstream.storage.types.EmbeddedStorageManager;
@@ -161,27 +159,6 @@ public class PersistenceManager {
 			}
 		}
 		return false;
-	}
-
-	public void storeMessage(long channelId, MessageData data) {
-		Map<Long, Lazy<List<Lazy<MessageData>>>> messages = droot.getMessages();
-		Lazy<List<Lazy<MessageData>>> channelMessages = messages.computeIfAbsent(channelId,
-				id -> Lazy.Reference(new ArrayList<>()));
-		List<Lazy<MessageData>> list = channelMessages.get();
-		Lazy<MessageData> reference = Lazy.Reference(data);
-		list.add(reference);
-
-		storage.store(reference);
-		storage.store(list);
-		storage.store(channelMessages);
-		storage.store(messages);
-
-		Lazy.clear(reference);
-		Lazy.clear(channelMessages);
-	}
-
-	public Map<Long, Lazy<List<Lazy<MessageData>>>> getMessages() {
-		return droot.getMessages();
 	}
 
 }

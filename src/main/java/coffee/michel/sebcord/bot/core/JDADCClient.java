@@ -81,6 +81,11 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 			cpm.persist(cpm.getBotConfig(), cpm.getBotConfig().getHandledServerId());
 			cpm.getDiscordApp().setEnabled(true);
 		}
+		if(Application.predefGuildID != null) {
+			cpm.getDiscordApp().setClientSecret(Application.predefClientSecret);
+			cpm.persist(cpm.getDiscordApp(), cpm.getDiscordApp().getClientSecret());
+			cpm.getDiscordApp().setEnabled(true);
+		}
 		
 		cpm.addSaveListener(() -> {
 			DiscordApplication updatedDcApp = cpm.getDiscordApp();
