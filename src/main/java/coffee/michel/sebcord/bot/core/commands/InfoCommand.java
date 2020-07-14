@@ -4,9 +4,11 @@
  */
 package coffee.michel.sebcord.bot.core.commands;
 
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -31,7 +33,7 @@ import net.dv8tion.jda.api.entities.User;
 public class InfoCommand implements Command {
 
 	private static final Pattern pattern = Pattern.compile("info");
-	private static final DateTimeFormatter dtForm = DateTimeFormatter.ofPattern("dd.MM.yyyy hh:mm");
+	private static final DateTimeFormatter dtForm = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.GERMANY);
 
 	@Autowired
 	private JDADCClient client;
@@ -74,10 +76,10 @@ public class InfoCommand implements Command {
 			var avatar = user.getAvatarUrl();
 			var name = user.getName();
 			var discrim = user.getDiscriminator();
-			var accountCreated = user.getTimeCreated();
+			var accountCreated = user.getTimeCreated().toInstant().atZone(ZoneId.of("Europe/Berlin"));
 
 			Optional<Member> optMember = client.getMemberById(user.getId());
-			var joinDate = optMember.map(m -> m.getTimeJoined()).map(dtForm::format).orElse("Unbekannt");
+			var joinDate = optMember.map(m -> m.getTimeJoined().toInstant().atZone(ZoneId.of("Europe/Berlin"))).map(dtForm::format).orElse("Unbekannt");
 			var roles = optMember.map(m -> m.getRoles().stream().map(Role::getName).collect(Collectors.joining(", ")))
 					.orElse("?");
 			var memberColor = optMember.map(m -> m.getColor().getRGB());
