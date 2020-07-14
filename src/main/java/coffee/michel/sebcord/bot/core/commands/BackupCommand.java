@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import coffee.michel.sebcord.bot.core.JDADCClient;
 import coffee.michel.sebcord.bot.core.ZipUtils;
@@ -46,10 +45,10 @@ import net.dv8tion.jda.api.entities.MessageEmbed.VideoInfo;
  * @author Jonas Michel
  *
  */
-@Component
+//@Component
 public class BackupCommand implements Command {
 
-	private static final Pattern	pattern	= Pattern.compile("backup");
+	private static final Pattern	pattern	= Command.createPattern("backup");
 
 	@Autowired
 	private JDADCClient				client;

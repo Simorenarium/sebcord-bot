@@ -24,7 +24,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 @Component
 public class MatchCommandImpl implements Command {
 
-	private static final Pattern pattern = Pattern.compile("match");
+	private static final Pattern pattern = Command.createPattern("match");
 
 	@Override
 	public String getName() {

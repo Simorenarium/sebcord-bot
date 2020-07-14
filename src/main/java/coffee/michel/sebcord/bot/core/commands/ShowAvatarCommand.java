@@ -26,7 +26,7 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 @Component
 public class ShowAvatarCommand implements Command {
 
-	private static final Pattern			pattern	= Pattern.compile("avatar");
+	private static final Pattern			pattern	= Command.createPattern("avatar");
 
 	private static final Map<Double, Long>	SCALE;
 	static {

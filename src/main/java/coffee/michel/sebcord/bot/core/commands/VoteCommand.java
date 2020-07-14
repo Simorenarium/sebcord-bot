@@ -17,7 +17,7 @@ public class VoteCommand implements Command, ReactionListener {
 	private static final Pattern	TITLE_MATCHER	= Pattern.compile("title\\((.*)\\)");
 	private static final Pattern	TIMEOUT_MATCHER	= Pattern.compile("timeout\\((\\d+[a-zA-Z])\\)");
 
-	private static final Pattern	pattern			= Pattern.compile("(vote|poll)");
+	private static final Pattern	pattern			= Command.createPattern("(vote|poll)");
 
 	@Override
 	public String getName() {

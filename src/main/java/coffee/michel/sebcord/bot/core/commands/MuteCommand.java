@@ -41,7 +41,7 @@ import net.dv8tion.jda.api.entities.Role;
 public class MuteCommand implements Command {
 
 	private static final Pattern			DURATION_PATTERN	= Pattern.compile("(\\d+)(m|M|d|D|h|H)");
-	private static final Pattern			pattern				= Pattern.compile("(mute|unmute)");
+	private static final Pattern			pattern				= Command.createPattern("(mute|unmute)");
 
 	@Autowired
 	private ConfigurationPersistenceManager	cpm;

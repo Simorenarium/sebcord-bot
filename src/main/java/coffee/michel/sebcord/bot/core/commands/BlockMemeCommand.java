@@ -13,7 +13,7 @@ import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceM
 @Component
 public class BlockMemeCommand implements Command {
 
-	private static final Pattern			pattern	= Pattern.compile("blockmeme\\s*(.*)");
+	private static final Pattern			pattern	= Command.createPattern("blockmeme\\s*(.*)");
 
 	@Autowired
 	private ConfigurationPersistenceManager	cpm;

@@ -13,11 +13,11 @@ import coffee.michel.sebcord.configuration.persistence.ConfigurationPersistenceM
 @Component
 public class ConverterCommand implements Command {
 
-	private static final Pattern			pattern	= Pattern
-			.compile("(convert|umrechnen)\\s(list|(\\d+)([a-zA-Z]+)\\s+([a-zA-Z]+))");
+	private static final Pattern pattern = Command
+			.createPattern("(convert|umrechnen)\\s(list|(\\d+)([a-zA-Z]+)\\s+([a-zA-Z]+))");
 
 	@Autowired
-	private ConfigurationPersistenceManager	cpm		= new ConfigurationPersistenceManager();
+	private ConfigurationPersistenceManager cpm = new ConfigurationPersistenceManager();
 
 	@Override
 	public String getName() {
@@ -53,11 +53,7 @@ public class ConverterCommand implements Command {
 
 		String execPlan = matchedGroups.get(2);
 		if (execPlan.equals("list")) {
-			String listedConversions = cpm.getBotConfig()
-					.getConversions()
-					.getConversionFactors()
-					.entrySet()
-					.stream()
+			String listedConversions = cpm.getBotConfig().getConversions().getConversionFactors().entrySet().stream()
 					.sorted((e1, e2) -> {
 						int sourceDiff = e1.getKey().x.compareTo(e2.getKey().x);
 						if (sourceDiff != 0)

@@ -32,7 +32,7 @@ import net.dv8tion.jda.api.entities.User;
 @Component
 public class InfoCommand implements Command {
 
-	private static final Pattern pattern = Pattern.compile("info");
+	private static final Pattern pattern = Command.createPattern("info");
 	private static final DateTimeFormatter dtForm = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.GERMANY);
 
 	@Autowired

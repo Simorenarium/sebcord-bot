@@ -28,7 +28,7 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 @Component
 public class HelpCommand implements Command {
 
-	private static final Pattern	pattern	= Pattern.compile("(help|hilfe)\\s*(--long)*");
+	private static final Pattern	pattern	= Command.createPattern("(help|hilfe)\\s*(--long)*");
 
 	@Autowired
 	private List<Command>			commands;

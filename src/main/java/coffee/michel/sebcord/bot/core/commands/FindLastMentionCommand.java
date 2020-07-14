@@ -22,7 +22,7 @@ import net.dv8tion.jda.api.entities.User;
 @Component
 public class FindLastMentionCommand implements Command {
 
-	private static final Pattern pattern = Pattern.compile("lastMention");
+	private static final Pattern pattern = Command.createPattern("lastMention");
 
 	@Override
 	public String getName() {

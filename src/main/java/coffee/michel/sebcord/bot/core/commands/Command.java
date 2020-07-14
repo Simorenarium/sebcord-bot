@@ -14,6 +14,10 @@ import java.util.regex.Pattern;
 public interface Command {
 
 	static final String COMMAND_INDICATOR = "o/";
+	
+	static Pattern createPattern(String regex) {
+		return Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+	}
 
 	String getName();
 

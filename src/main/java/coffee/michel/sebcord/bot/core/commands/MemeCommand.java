@@ -25,7 +25,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 @Component
 public class MemeCommand implements Command {
 
-	private static final Pattern			pattern			= Pattern.compile("meme\\s*(.*)|dankmeme");
+	private static final Pattern			pattern			= Command.createPattern("meme\\s*(.*)|dankmeme");
 
 	private Map<Long, Instant>				lastExecByUser	= new HashMap<>();
 	private Map<String, LocalDateTime>		previousMemes	= new HashMap<>();

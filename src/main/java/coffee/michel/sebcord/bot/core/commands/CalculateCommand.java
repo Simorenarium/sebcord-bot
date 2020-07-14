@@ -19,7 +19,7 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 @Component
 public class CalculateCommand implements Command {
 
-	private static final Pattern pattern = Pattern.compile("calc|calculate");
+	private static final Pattern pattern = Command.createPattern("calc|calculate");
 
 	@Override
 	public String getName() {

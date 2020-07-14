@@ -32,7 +32,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 @Component
 public class PruneCommand implements Command {
 
-	private static final Pattern	pattern				= Pattern.compile("prune|clear|clean");
+	private static final Pattern	pattern				= Command.createPattern("prune|clear|clean");
 	private Map<Long, Instant>		lastPrunePerChannel	= new ConcurrentHashMap<>();
 
 	@Autowired

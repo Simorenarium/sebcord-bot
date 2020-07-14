@@ -14,8 +14,7 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 //@Component
 public class MusicCommand implements Command {
 
-	private static final Pattern											pattern	= Pattern
-			.compile("(music|musik).*");
+	private static final Pattern											pattern	= Command.createPattern("(music|musik).*");
 
 	private coffee.michel.sebcord.bot.core.commands.commands.MusicCommand	mcmd;
 	@Autowired

@@ -35,7 +35,7 @@ import net.dv8tion.jda.api.entities.User;
 public class BlacklistCommand implements Command, MessageListener {
 
 	private static final Predicate<String>	wordMatcher	= Pattern.compile("[a-zA-z]{1,}").asMatchPredicate();
-	private static final Pattern			pattern		= Pattern.compile("(?:blacklist\\s)(add|remove|show)");
+	private static final Pattern			pattern		= Command.createPattern("(?:blacklist\\s)(add|remove|show)");
 
 	@Autowired
 	private ConfigurationPersistenceManager	cpm;
