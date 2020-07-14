@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>coffee.michel.sebcord</groupId>
 	<artifactId>coffee.michel.sebcord.bot</artifactId>
-	<version>3.0.1</version>
+	<version>3.1.0</version>
 	<name>coffee.michel.sebcord</name>
 	<description>Sebcord</description>
 

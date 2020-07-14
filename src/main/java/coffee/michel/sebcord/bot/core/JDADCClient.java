@@ -5,6 +5,7 @@
  */
 package coffee.michel.sebcord.bot.core;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,6 +28,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Activity.ActivityType;
+import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -111,7 +113,7 @@ public class JDADCClient implements ApplicationListener<ApplicationStartedEvent>
 
 	private void initialize(DiscordApplication discordApp) {
 		try {
-			jda = new JDABuilder(discordApp.getToken())
+			jda = JDABuilder.create(discordApp.getToken(), Arrays.asList(GatewayIntent.values()))
 					.addEventListeners(eventBroadcaster)
 					.setActivity(Activity.of(ActivityType.DEFAULT, "Bin am starten"))
 					.setBulkDeleteSplittingEnabled(false)
