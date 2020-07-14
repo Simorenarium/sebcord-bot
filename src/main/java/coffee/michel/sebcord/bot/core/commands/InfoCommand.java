@@ -8,7 +8,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -32,7 +31,7 @@ import net.dv8tion.jda.api.entities.User;
 public class InfoCommand implements Command {
 
 	private static final Pattern pattern = Pattern.compile("info");
-	private static final DateTimeFormatter dtForm = DateTimeFormatter.ofPattern("dd.mm.yyyy hh:MM");
+	private static final DateTimeFormatter dtForm = DateTimeFormatter.ofPattern("dd.MM.yyyy hh:mm");
 
 	@Autowired
 	private JDADCClient client;
@@ -68,16 +67,7 @@ public class InfoCommand implements Command {
 			return;
 		}
 
-		CompletableFuture<Void> sendTyping = CompletableFuture.runAsync(() -> {
-			while (!Thread.currentThread().isInterrupted()) {
-				channel.sendTyping().complete();
-				try {
-					Thread.sleep(5000L);
-				} catch (InterruptedException e) {
-					return;
-				}
-			}
-		});
+		channel.sendTyping().complete();
 
 		mentionedUsers.forEach(user -> {
 			var id = user.getId();
@@ -105,8 +95,6 @@ public class InfoCommand implements Command {
 			
 			channel.sendMessage(embed.build()).queue();
 		});
-
-		sendTyping.cancel(true);
 	}
 	
 }
