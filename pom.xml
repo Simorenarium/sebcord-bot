@@ -39,7 +39,7 @@
 	<properties>
 		<node.version>v12.14.0</node.version>
 		<java.version>11</java.version>
-		<vaadin.version>14.1.16</vaadin.version>
+		<vaadin.version>17.0.3</vaadin.version>
 		<microstream.version>02.00.00-MS-GA</microstream.version>
 	</properties>
 
